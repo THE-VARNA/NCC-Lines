@@ -17,7 +17,8 @@ use ika_dwallet_types::{
     DWalletRequest, DWalletSignatureScheme, SignedRequestData,
 };
 
-/// Default Ika gRPC endpoint (devnet)
+/// Ika dWallet gRPC endpoint — pre-alpha devnet
+/// Confirmed from: ika-pre-alpha/docs/src/getting-started/installation.md
 const DEFAULT_IKA_ENDPOINT: &str = "https://pre-alpha-dev-1.ika.ika-network.net:443";
 
 #[tokio::main]

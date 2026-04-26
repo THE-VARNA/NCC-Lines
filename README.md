@@ -14,6 +14,15 @@ Native Collateral Credit Lines (NCC Lines) is an institutional-grade lending pro
 - **Ika dWallet** — BTC collateral is controlled by an MPC dWallet. No bridges, no custodians, no single point of failure. The Solana program controls signing via CPI `approve_message`.
 - **Pinocchio** — The on-chain program is written with the Pinocchio framework for minimal compute unit cost.
 
+## Devnet Addresses
+
+| Component | Address |
+|-----------|---------|
+| Encrypt Program | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` |
+| Ika dWallet Program | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` |
+| Encrypt gRPC | `pre-alpha-dev-1.encrypt.ika-network.net:443` |
+| Ika gRPC | `pre-alpha-dev-1.ika.ika-network.net:443` |
+
 ## Architecture
 
 ```

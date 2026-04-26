@@ -9,7 +9,7 @@
 // LTV is computed in basis points: 6000 bps = 60%.
 
 use encrypt_dsl::prelude::encrypt_fn;
-use alloc::vec::Vec;
+use std::vec::Vec;
 use encrypt_pinocchio::EncryptContext;
 use pinocchio::{AccountView, ProgramResult};
 

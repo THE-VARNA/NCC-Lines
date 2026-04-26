@@ -50,12 +50,18 @@ cargo test -p native-credit-lines
 # Expected: 14 passed; 0 failed
 ```
 
-## Devnet Program IDs (fill in after sponsor docs update)
+## Devnet Program IDs (official, confirmed from SDK source)
 | Component | Program ID |
 |-----------|------------|
-| This program | `<deploy output>` |
-| Encrypt FHE | TBD (check https://docs.encrypt.xyz) |
-| Ika dWallet | TBD (check https://docs.ika.xyz/solana) |
+| This program | `<solana program deploy output>` |
+| Encrypt FHE | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` |
+| Ika dWallet | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` |
+
+## gRPC Endpoints
+| Service | Endpoint |
+|---------|----------|
+| Encrypt gRPC | `https://pre-alpha-dev-1.encrypt.ika-network.net:443` |
+| Ika dWallet gRPC | `https://pre-alpha-dev-1.ika.ika-network.net:443` |
 
 ## Airdrop More SOL If Needed
 ```bash

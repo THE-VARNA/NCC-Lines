@@ -1,14 +1,33 @@
-// Protocol constants shared between frontend and (future) tests
-export const PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID ?? "11111111111111111111111111111111";
-export const ENCRYPT_PROGRAM_ID = process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ?? "";
-export const IKA_DWALLET_PROGRAM_ID = process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ?? "";
+// ── Official pre-alpha program IDs (verified from SDK source) ─────────────
+// Encrypt: confirmed in encrypt-pre-alpha docs/README across all commits
+// Ika:     confirmed in ika-pre-alpha docs/README across all commits
 
-// Risk parameters (mirrors on-chain constants)
-export const MAX_BORROW_LTV_BPS = 6000;  // 60%
-export const LIQUIDATION_LTV_BPS = 7500; // 75%
+export const PROGRAM_ID =
+  process.env.NEXT_PUBLIC_PROGRAM_ID ?? "11111111111111111111111111111111";
+
+export const ENCRYPT_PROGRAM_ID =
+  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ??
+  "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8";
+
+export const IKA_DWALLET_PROGRAM_ID =
+  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ??
+  "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY";
+
+// ── gRPC endpoints (server-side only — not exposed to browser) ─────────────
+export const ENCRYPT_GRPC_ENDPOINT =
+  process.env.ENCRYPT_GRPC_ENDPOINT ??
+  "https://pre-alpha-dev-1.encrypt.ika-network.net:443";
+
+export const IKA_GRPC_ENDPOINT =
+  process.env.IKA_GRPC_ENDPOINT ??
+  "https://pre-alpha-dev-1.ika.ika-network.net:443";
+
+// ── Risk parameters (mirrors on-chain constants in lib.rs) ─────────────────
+export const MAX_BORROW_LTV_BPS = 6000;   // 60%
+export const LIQUIDATION_LTV_BPS = 7500;  // 75%
 export const BPS_DENOMINATOR = 10000;
 
-// Instruction discriminators (mirrors lib.rs)
+// ── Instruction discriminators (mirrors lib.rs) ────────────────────────────
 export const IX = {
   INITIALIZE_POOL: 0,
   CREATE_LOAN: 1,
@@ -23,10 +42,9 @@ export const IX = {
   FINALIZE_LIQUIDATION: 10,
 } as const;
 
-// Asset IDs
 export const ASSET_BTC = 1;
 
-// Loan statuses (mirrors LoanStatus enum)
+// ── Loan status labels (mirrors LoanStatus enum in state.rs) ───────────────
 export const LOAN_STATUS = {
   0: "Draft",
   1: "Vault Ready",
@@ -46,6 +64,7 @@ export function loanStatusLabel(code: number): string {
   return LOAN_STATUS[code as LoanStatusKey] ?? "Unknown";
 }
 
+// ── Math helpers ───────────────────────────────────────────────────────────
 export function computeCreditLimit(collateralUsdCents: bigint): bigint {
   return (collateralUsdCents * BigInt(MAX_BORROW_LTV_BPS)) / BigInt(BPS_DENOMINATOR);
 }
