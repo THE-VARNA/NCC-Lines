@@ -1,58 +1,51 @@
 "use client";
 
+import { ltvPercent, usdCentsToDisplay, computeCreditLimit } from "@/lib/constants";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useState } from "react";
-import { computeCreditLimit, ltvPercent, usdCentsToDisplay } from "@/lib/constants";
 import { BorrowModal } from "./BorrowModal";
 
 interface LoanPosition {
   id: string;
-  status: string;
   statusCode: number;
+  statusLabel: string;
   collateralBtc: number;
   collateralUsd: bigint;
   debtUsd: bigint;
   creditLimit: bigint;
   dwalletId: string;
+  ltvLimit: number;
 }
 
-// Demo positions for unconnected state
 const DEMO_LOANS: LoanPosition[] = [
   {
-    id: "Demo7xK...mPQ",
-    status: "Active",
+    id: "Loan7xKm...mPQ3",
     statusCode: 2,
+    statusLabel: "Active",
     collateralBtc: 0.5,
-    collateralUsd: 5_000_000n,   // $50,000
-    debtUsd: 20_000_00n,         // $20,000
-    creditLimit: 30_000_00n,     // $30,000 (60% of $50K)
-    dwalletId: "dw_demo...abc",
+    collateralUsd: 5_000_000n,
+    debtUsd:       2_000_000n,
+    creditLimit:   3_000_000n,
+    dwalletId:     "dw_0xAABB...CC01",
+    ltvLimit:      75,
   },
 ];
 
 function LtvBar({ ltv, limit }: { ltv: number; limit: number }) {
-  const danger = ltv > 70;
-  const warn = ltv > 55;
+  const pct = Math.min((ltv / limit) * 100, 100);
+  const cls = ltv >= limit ? "danger" : ltv >= limit * 0.75 ? "warn" : "";
+  const color = ltv >= limit ? "var(--red)" : ltv >= limit * 0.75 ? "var(--amber)" : "var(--green)";
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.4rem" }}>
-        <span style={{ fontSize: "0.75rem" }} className="text-secondary">LTV</span>
-        <span
-          style={{
-            fontSize: "0.75rem",
-            fontFamily: "'JetBrains Mono', monospace",
-            color: danger ? "var(--red)" : warn ? "var(--amber)" : "var(--green)",
-            fontWeight: 600,
-          }}
-        >
-          {ltv}% / {limit}%
+      <div className="flex justify-between" style={{ marginBottom: "0.375rem" }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--text-2)" }}>LTV</span>
+        <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", color, fontWeight: 700 }}>
+          {ltv}% <span style={{ color: "var(--text-3)", fontWeight: 400 }}>/ {limit}%</span>
         </span>
       </div>
-      <div className="progress-track">
-        <div
-          className={`progress-fill${danger ? " danger" : ""}`}
-          style={{ width: `${Math.min((ltv / limit) * 100, 100)}%` }}
-        />
+      <div className="progress">
+        <div className={`progress-fill ${cls}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -60,109 +53,82 @@ function LtvBar({ ltv, limit }: { ltv: number; limit: number }) {
 
 function LoanCard({ loan, demo }: { loan: LoanPosition; demo?: boolean }) {
   const ltv = ltvPercent(loan.debtUsd, loan.collateralUsd);
-  const available = loan.creditLimit - loan.debtUsd;
+  const available = loan.creditLimit > loan.debtUsd ? loan.creditLimit - loan.debtUsd : 0n;
   const [showBorrow, setShowBorrow] = useState(false);
+  const [showRepay, setShowRepay] = useState(false);
 
   return (
     <>
-      <div
-        className="glass-card"
-        style={{
-          padding: "1.5rem",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <div className="card animate-in" style={{ padding: "clamp(1.25rem, 3vw, 1.75rem)", position: "relative", overflow: "hidden" }}>
+
+        {/* Demo watermark */}
         {demo && (
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              right: 0,
-              background: "var(--amber-dim)",
-              color: "var(--amber)",
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              padding: "0.25rem 0.75rem",
-              borderBottomLeftRadius: 8,
-              letterSpacing: "0.05em",
-            }}
-          >
-            DEMO
-          </div>
+          <div style={{
+            position: "absolute", top: 0, right: 0,
+            background: "var(--amber-soft)", color: "var(--amber)",
+            fontSize: "0.625rem", fontWeight: 800, letterSpacing: "0.1em",
+            padding: "0.2rem 0.75rem", borderBottomLeftRadius: "var(--r-sm)",
+            borderTop: "1px solid var(--border-amber)", borderRight: "1px solid var(--border-amber)",
+          }}>DEMO</div>
         )}
 
-        {/* Header row */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
+        {/* Header */}
+        <div className="flex justify-between items-start" style={{ marginBottom: "1.25rem", gap: "0.5rem" }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
-              <span className="status-dot active" />
-              <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>BTC Credit Line</span>
+            <div className="flex items-center" style={{ gap: "0.5rem", marginBottom: "0.25rem" }}>
+              <span className="dot dot-green" />
+              <span style={{ fontWeight: 700, fontSize: "1rem" }}>BTC Credit Line</span>
+              <span className="badge badge-teal">{loan.statusLabel}</span>
             </div>
-            <code style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{loan.id}</code>
+            <code style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{loan.id}</code>
           </div>
-          <span className="badge badge-teal">{loan.status}</span>
+          <div style={{ textAlign: "right", flexShrink: 0 }}>
+            <div className="metric-value c-amber">{loan.collateralBtc} BTC</div>
+            <div className="metric-label">Collateral</div>
+          </div>
         </div>
 
-        {/* Numbers grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "1rem",
-            marginBottom: "1.25rem",
-          }}
-        >
+        {/* Metrics grid */}
+        <div className="grid-4" style={{ marginBottom: "1.25rem" }}>
           {[
-            { label: "Collateral", value: usdCentsToDisplay(loan.collateralUsd), accent: "var(--amber)" },
-            { label: "Outstanding Debt", value: usdCentsToDisplay(loan.debtUsd), accent: "var(--text-primary)" },
-            { label: "Available Credit", value: usdCentsToDisplay(available > 0n ? available : 0n), accent: "var(--teal)" },
-          ].map(({ label, value, accent }) => (
-            <div key={label}>
-              <div className="text-muted" style={{ fontSize: "0.72rem", marginBottom: "0.25rem" }}>{label}</div>
-              <div style={{ fontWeight: 700, fontSize: "0.95rem", color: accent, fontFamily: "'JetBrains Mono', monospace" }}>
-                {value}
-              </div>
+            { label: "Collateral Value", value: usdCentsToDisplay(loan.collateralUsd), color: "var(--text-0)" },
+            { label: "Outstanding Debt",  value: usdCentsToDisplay(loan.debtUsd),       color: "var(--text-0)" },
+            { label: "Credit Available",  value: usdCentsToDisplay(available),           color: "var(--teal)" },
+            { label: "Credit Limit",      value: usdCentsToDisplay(loan.creditLimit),    color: "var(--text-1)" },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="card-flat" style={{ padding: "0.75rem", display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+              <span className="metric-label">{label}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "0.9375rem", color }}>{value}</span>
             </div>
           ))}
         </div>
 
-        <div className="divider" style={{ marginBottom: "1.25rem" }} />
-        <LtvBar ltv={ltv} limit={75} />
+        {/* LTV bar */}
+        <LtvBar ltv={ltv} limit={loan.ltvLimit} />
+
+        <div className="divider" style={{ margin: "1.25rem 0" }} />
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.25rem" }}>
-          <button
-            id={`btn-borrow-${loan.id}`}
-            className="btn-primary"
-            style={{ fontSize: "0.85rem", padding: "0.6rem 1.25rem" }}
-            onClick={() => setShowBorrow(true)}
-            disabled={demo}
-          >
-            Borrow
+        <div className="flex" style={{ gap: "0.625rem", flexWrap: "wrap" }}>
+          <button id={`btn-borrow-${loan.id}`} className="btn btn-primary btn-sm"
+            onClick={() => !demo && setShowBorrow(true)} disabled={demo}>
+            Borrow USDC
           </button>
-          <button
-            id={`btn-repay-${loan.id}`}
-            className="btn-secondary"
-            style={{ fontSize: "0.85rem", padding: "0.6rem 1.25rem" }}
-            disabled={demo}
-          >
+          <button id={`btn-repay-${loan.id}`} className="btn btn-secondary btn-sm"
+            onClick={() => !demo && setShowRepay(true)} disabled={demo}>
             Repay
           </button>
-          <button
-            id={`btn-release-${loan.id}`}
-            className="btn-secondary"
-            style={{ fontSize: "0.85rem", padding: "0.6rem 1.25rem", marginLeft: "auto" }}
-            disabled={demo}
-          >
-            Release →
+          <button id={`btn-release-${loan.id}`} className="btn btn-ghost btn-sm"
+            style={{ marginLeft: "auto", color: "var(--text-2)" }} disabled={demo}>
+            Release Collateral →
           </button>
         </div>
 
-        {/* FHE badge */}
-        <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem" }}>
-          <span className="badge badge-purple" style={{ fontSize: "0.65rem" }}>🔒 FHE-Private</span>
-          <span className="badge badge-amber" style={{ fontSize: "0.65rem" }}>⚡ dWallet Secured</span>
+        {/* Privacy badges */}
+        <div className="flex" style={{ gap: "0.375rem", marginTop: "0.875rem", flexWrap: "wrap" }}>
+          <span className="badge badge-purple">🔒 FHE-Private Debt</span>
+          <span className="badge badge-teal">⚡ Ika MPC Custody</span>
+          <span className="badge badge-amber">₿ EcdsaDoubleSha256</span>
         </div>
       </div>
 
@@ -180,70 +146,50 @@ function LoanCard({ loan, demo }: { loan: LoanPosition; demo?: boolean }) {
 
 export function LoanDashboard() {
   const { connected, publicKey } = useWallet();
-  const [showNewLoan, setShowNewLoan] = useState(false);
-
   const loans = connected ? [] : DEMO_LOANS;
   const isDemo = !connected;
 
   return (
-    <section
-      style={{ maxWidth: 1200, margin: "0 auto 4rem", padding: "0 1.5rem" }}
-    >
-      {/* Section header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <div>
-          <h2>Credit Positions</h2>
-          <p style={{ fontSize: "0.875rem", marginTop: "0.25rem" }}>
-            {connected ? `${publicKey?.toBase58().slice(0, 8)}...` : "Connect wallet to view your positions"}
-          </p>
+    <section className="z-base" style={{ paddingBottom: "clamp(3rem, 6vw, 5rem)" }}>
+      <div className="container">
+        {/* Section header */}
+        <div className="flex justify-between items-center" style={{ marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ fontSize: "1.375rem" }}>Credit Positions</h2>
+            <p style={{ fontSize: "0.8125rem", marginTop: "0.2rem" }}>
+              {connected
+                ? <span>Wallet <code style={{ color: "var(--teal)" }}>{publicKey?.toBase58().slice(0, 6)}...{publicKey?.toBase58().slice(-4)}</code></span>
+                : "Connect wallet to view live positions"}
+            </p>
+          </div>
+          <Link href="/borrow" id="btn-new-credit-line"
+            className={`btn btn-primary btn-sm${!connected ? " hide-mobile" : ""}`}
+            style={{ textDecoration: "none", opacity: connected ? 1 : 0.6, pointerEvents: connected ? "auto" : "none" }}>
+            + New Credit Line
+          </Link>
         </div>
-        <button
-          id="btn-new-credit-line"
-          className="btn-primary"
-          onClick={() => setShowNewLoan(true)}
-          disabled={!connected}
-        >
-          + New Credit Line
-        </button>
-      </div>
 
-      {/* Loans grid */}
-      {loans.length > 0 ? (
-        <div style={{ display: "grid", gap: "1.25rem" }}>
-          {loans.map((loan) => (
-            <LoanCard key={loan.id} loan={loan} demo={isDemo} />
-          ))}
-        </div>
-      ) : connected ? (
-        <div
-          className="glass-card"
-          style={{
-            padding: "4rem",
-            textAlign: "center",
-            borderStyle: "dashed",
-          }}
-        >
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>₿</div>
-          <h3>No Credit Lines Yet</h3>
-          <p style={{ marginTop: "0.5rem", marginBottom: "1.5rem" }}>
-            Open your first confidential BTC credit line in minutes.
-          </p>
-          <button
-            id="btn-open-first-line"
-            className="btn-primary"
-            onClick={() => setShowNewLoan(true)}
-          >
-            Open Credit Line →
-          </button>
-        </div>
-      ) : null}
+        {/* Loans */}
+        {loans.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {loans.map(loan => <LoanCard key={loan.id} loan={loan} demo={isDemo} />)}
+          </div>
+        ) : connected ? (
+          <div className="card" style={{ padding: "clamp(2.5rem, 6vw, 4rem)", textAlign: "center" }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>₿</div>
+            <h3 style={{ marginBottom: "0.5rem" }}>No Credit Lines Yet</h3>
+            <p style={{ marginBottom: "1.75rem" }}>Open your first confidential BTC credit line in minutes.</p>
+            <Link href="/borrow" id="btn-open-first-line" className="btn btn-primary" style={{ textDecoration: "none" }}>
+              Open Credit Line →
+            </Link>
+          </div>
+        ) : (
+          <div className="card" style={{ padding: "clamp(2rem, 5vw, 3rem)", textAlign: "center" }}>
+            <p style={{ marginBottom: "1.25rem" }}>Connect your wallet to manage live credit positions.</p>
+            <WalletMultiButton />
+          </div>
+        )}
+      </div>
     </section>
   );
 }

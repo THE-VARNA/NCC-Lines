@@ -18,7 +18,8 @@ pinocchio-system = { workspace = true }
 # encrypt-solana-test has a broken transitive dep (agave-votor-messages) in pre-alpha.
 # Re-enable once upstream fixes it. Using Mollusk-only testing for now.
 # encrypt-solana-test = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha" }
-mollusk-svm = { version = "0.11", features = ["inner-instructions"] }
-solana-account = "2"
-solana-instruction = "2"
-solana-pubkey = "2"
+mollusk-svm   = { version = "0.11", features = ["inner-instructions"] }
+# Aligned to what mollusk-svm 0.11 transitively requires (pubkey=4, account=3, instruction=3)
+solana-account     = "3"
+solana-instruction = "3"
+solana-pubkey      = "4"

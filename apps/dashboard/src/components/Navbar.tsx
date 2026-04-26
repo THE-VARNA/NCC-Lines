@@ -4,85 +4,82 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import Link from "next/link";
 import { useState } from "react";
 
+const NAV_LINKS = [
+  { href: "/", label: "Dashboard" },
+  { href: "/borrow", label: "Borrow" },
+  { href: "/pools", label: "Pools" },
+  { href: "/proofs", label: "Proofs" },
+];
+
 export function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
     <nav
-      id="main-nav"
+      className="z-nav"
       style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
-        background: "rgba(8, 11, 18, 0.85)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        padding: "0 1.5rem",
+        background: "rgba(6, 8, 16, 0.88)",
+        backdropFilter: "var(--blur-md)",
+        WebkitBackdropFilter: "var(--blur-md)",
+        borderBottom: "1px solid var(--border-0)",
       }}
     >
-      <div
-        style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          height: 64,
-        }}
-      >
+      <div className="container" style={{ height: "var(--nav-h)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
         {/* Logo */}
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "0.625rem", textDecoration: "none" }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "linear-gradient(135deg, #f7931a, #e8820f)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: "0.9rem",
-              color: "#000",
-              boxShadow: "0 0 16px rgba(247,147,26,0.4)",
-            }}
-          >
-            ₿
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: "0.625rem", textDecoration: "none", flexShrink: 0 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: "linear-gradient(135deg, var(--amber), #c96e08)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "1rem", fontWeight: 900, color: "#000",
+            boxShadow: "var(--shadow-amber)",
+            flexShrink: 0,
+          }}>₿</div>
+          <div className="hide-mobile">
+            <span style={{ fontWeight: 800, fontSize: "0.9375rem", letterSpacing: "-0.02em", color: "var(--text-0)" }}>NCC</span>
+            <span style={{ fontWeight: 400, fontSize: "0.9375rem", color: "var(--text-2)", marginLeft: 4 }}>Lines</span>
           </div>
-          <span style={{ fontWeight: 700, fontSize: "1rem", color: "#f0f4ff", letterSpacing: "-0.02em" }}>
-            NCC Lines
-          </span>
         </Link>
 
-        {/* Desktop links */}
-        <div style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
-          {[
-            { href: "/", label: "Dashboard" },
-            { href: "/borrow", label: "Borrow" },
-            { href: "/pools", label: "Pools" },
-            { href: "/proofs", label: "Proofs" },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              style={{
-                color: "rgba(200, 210, 240, 0.7)",
-                textDecoration: "none",
-                fontSize: "0.875rem",
-                fontWeight: 500,
-                transition: "color 150ms",
-              }}
-              onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#f0f4ff")}
-              onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "rgba(200, 210, 240, 0.7)")}
-            >
-              {label}
-            </Link>
+        {/* Desktop nav links */}
+        <div className="hide-mobile" style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link key={href} href={href} className="btn btn-ghost"
+              style={{ color: "var(--text-1)", transition: "color var(--t-sm)" }}
+              onMouseEnter={e => (e.currentTarget.style.color = "var(--text-0)")}
+              onMouseLeave={e => (e.currentTarget.style.color = "var(--text-1)")}
+            >{label}</Link>
           ))}
         </div>
 
-        {/* Wallet button */}
-        <WalletMultiButton />
+        {/* Right side */}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+          <WalletMultiButton />
+          {/* Mobile hamburger */}
+          <button
+            className="show-mobile-only"
+            onClick={() => setOpen(!open)}
+            style={{ background: "none", border: "1px solid var(--border-1)", borderRadius: "var(--r-sm)", padding: "0.375rem 0.5rem", cursor: "pointer", color: "var(--text-1)" }}
+            aria-label="Toggle menu"
+          >☰</button>
+        </div>
       </div>
+
+      {/* Mobile dropdown */}
+      {open && (
+        <div className="show-mobile-only animate-in-fast" style={{
+          borderTop: "1px solid var(--border-0)",
+          background: "rgba(6,8,16,0.98)",
+          padding: "0.75rem 1rem",
+          display: "flex", flexDirection: "column", gap: "0.25rem",
+        }}>
+          {NAV_LINKS.map(({ href, label }) => (
+            <Link key={href} href={href} onClick={() => setOpen(false)}
+              style={{ padding: "0.625rem 0.75rem", borderRadius: "var(--r-sm)", color: "var(--text-1)", textDecoration: "none", fontWeight: 500, fontSize: "0.9375rem" }}
+            >{label}</Link>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
