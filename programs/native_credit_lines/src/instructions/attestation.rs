@@ -151,10 +151,10 @@ pub fn process(
     };
 
     // Create encrypted collateral value
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&collateral_value, collateral_value_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&collateral_value, collateral_value_ct)?;
 
     // Create encrypted zero for initial debt
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&0u64, debt_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&0u64, debt_ct)?;
 
     // Update loan — transition to Active
     drop(loan_data);

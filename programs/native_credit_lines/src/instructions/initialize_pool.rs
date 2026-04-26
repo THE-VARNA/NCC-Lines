@@ -136,10 +136,10 @@ pub fn process(
     };
 
     // Create encrypted zero for total_debt
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&0u64, total_debt_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&0u64, total_debt_ct)?;
 
     // Create encrypted seed liquidity
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&seed_liquidity, pool_liquidity_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&seed_liquidity, pool_liquidity_ct)?;
 
     Ok(())
 }

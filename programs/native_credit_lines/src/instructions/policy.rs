@@ -18,10 +18,11 @@ use pinocchio::{
 use pinocchio_system::instructions::CreateAccount;
 use encrypt_pinocchio::EncryptContext;
 use encrypt_pinocchio::accounts::read_decrypted_verified;
-use ika_dwallet_pinocchio::{DWalletContext, CPI_AUTHORITY_SEED};
+use ika_dwallet_pinocchio::DWalletContext;
 
 use crate::state::*;
 use crate::{POLICY_RELEASE, POLICY_LIQUIDATION};
+use crate::fhe_graphs;
 
 // ════════════════════════════════════════════════════════════
 // Request Release Policy (IX 7)
@@ -165,7 +166,7 @@ fn request_policy_inner(
     };
 
     // Execute release_policy graph: debt → policy_bit
-    ctx.release_policy(debt_ct, policy_ct)?;
+    fhe_graphs::exec_release_policy(&ctx, debt_ct, policy_ct)?;
 
     // Request decryption of the policy bit
     let digest = ctx.request_decryption(decryption_request, policy_ct)?;
@@ -271,7 +272,7 @@ fn request_liquidation_inner(
     };
 
     // Execute liquidation_policy graph: (debt, collateral) → policy_bit
-    ctx.liquidation_policy(debt_ct, collateral_value_ct, policy_ct)?;
+    fhe_graphs::exec_liquidation_policy(&ctx, debt_ct, collateral_value_ct, policy_ct)?;
 
     // Request decryption
     let digest = ctx.request_decryption(decryption_request, policy_ct)?;
@@ -450,7 +451,7 @@ fn finalize_and_approve(
     // Read and verify decrypted policy bit
     let pending_digest = read_pubkey(pol_data, POL_PENDING_DIGEST);
     let req_data = unsafe { decryption_request.borrow_unchecked() };
-    let policy_value: &u64 = read_decrypted_verified::<encrypt_types::types::Uint64>(
+    let policy_value: &u64 = read_decrypted_verified::<encrypt_types::encrypted::Uint64>(
         req_data, &pending_digest
     )?;
 

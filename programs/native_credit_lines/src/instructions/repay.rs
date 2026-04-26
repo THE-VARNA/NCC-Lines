@@ -25,6 +25,7 @@ use pinocchio::{
 use encrypt_pinocchio::EncryptContext;
 
 use crate::state::*;
+use crate::fhe_graphs;
 
 pub fn process(
     _program_id: &Address,
@@ -99,10 +100,11 @@ pub fn process(
     };
 
     // Create plaintext repay amount
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&repay_amount, repay_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&repay_amount, repay_ct)?;
 
     // Execute repay_check FHE graph
-    ctx.repay_check(
+    fhe_graphs::exec_repay_check(
+        &ctx,
         debt_ct,
         pool_liquidity_ct,
         repay_ct,

@@ -38,6 +38,7 @@ use pinocchio::{
 use encrypt_pinocchio::EncryptContext;
 
 use crate::state::*;
+use crate::fhe_graphs;
 
 pub fn process(
     _program_id: &Address,
@@ -117,11 +118,11 @@ pub fn process(
     };
 
     // Create plaintext amount ciphertext
-    ctx.create_plaintext_typed::<encrypt_types::types::Uint64>(&amount, amount_ct)?;
+    ctx.create_plaintext_typed::<encrypt_types::encrypted::Uint64>(&amount, amount_ct)?;
 
     // Execute borrow_check FHE graph via CPI
-    // DSL-generated method: ctx.borrow_check(debt, pool, collateral, amount, out_debt, out_pool, out_actual)
-    ctx.borrow_check(
+    fhe_graphs::exec_borrow_check(
+        &ctx,
         debt_ct,
         pool_liquidity_ct,
         collateral_value_ct,

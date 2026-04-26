@@ -12,6 +12,7 @@
 
 #![no_std]
 #![allow(unexpected_cfgs)]
+#![allow(dropping_references)]
 
 extern crate alloc;
 
