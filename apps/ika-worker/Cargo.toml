@@ -1,0 +1,10 @@
+[package]
+name = "ika-worker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ika-grpc = { git = "https://github.com/dwallet-labs/ika-pre-alpha" }
+ika-dwallet-types = { git = "https://github.com/dwallet-labs/ika-pre-alpha" }
+tokio = { workspace = true }
+bcs = "0.1"

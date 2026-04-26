@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "programs/native_credit_lines",
+    "apps/ika-worker",
+]
+
+[workspace.dependencies]
+pinocchio = "0.10"
+pinocchio-system = "0.5"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
