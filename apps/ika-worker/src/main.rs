@@ -11,11 +11,13 @@
 //   ika-worker gas-deposit --dwallet-id <HEX>
 //   ika-worker sign --dwallet-id <HEX> --message-approval <BASE58>
 
+#[allow(unused_imports)]
 use ika_grpc::d_wallet_service_client::DWalletServiceClient;
+#[allow(unused_imports)]
 use ika_grpc::UserSignedRequest;
-use ika_dwallet_types::{
-    DWalletRequest, DWalletSignatureScheme, SignedRequestData,
-};
+use ika_dwallet_types::DWalletSignatureScheme;
+#[allow(unused_imports)]
+use ika_dwallet_types::{DWalletRequest, SignedRequestData};
 
 /// Ika dWallet gRPC endpoint — pre-alpha devnet
 /// Confirmed from: ika-pre-alpha/docs/src/getting-started/installation.md

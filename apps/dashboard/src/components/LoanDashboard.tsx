@@ -1,10 +1,10 @@
 "use client";
 
-import { ltvPercent, usdCentsToDisplay, computeCreditLimit } from "@/lib/constants";
+import { ltvPercent, usdCentsToDisplay } from "@/lib/constants";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import Link from "next/link";
 import { useState } from "react";
-import { BorrowModal } from "./BorrowModal";
 
 interface LoanPosition {
   id: string;
@@ -133,12 +133,22 @@ function LoanCard({ loan, demo }: { loan: LoanPosition; demo?: boolean }) {
       </div>
 
       {showBorrow && (
-        <BorrowModal
-          loanId={loan.id}
-          creditLimit={loan.creditLimit}
-          currentDebt={loan.debtUsd}
-          onClose={() => setShowBorrow(false)}
-        />
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 100,
+          background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: "1rem",
+        }} onClick={() => setShowBorrow(false)}>
+          <div className="card" style={{ maxWidth: 440, width: "100%", padding: "2rem" }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "1rem" }}>Borrow USDC</h3>
+            <p style={{ marginBottom: "1.5rem" }}>Enter amount (max: {usdCentsToDisplay(loan.creditLimit - loan.debtUsd)})</p>
+            <input className="input" placeholder="0.00 USDC" style={{ marginBottom: "1rem" }} />
+            <div className="flex" style={{ gap: "0.75rem" }}>
+              <button className="btn btn-primary" style={{ flex: 1 }}>Confirm Borrow</button>
+              <button className="btn btn-secondary" onClick={() => setShowBorrow(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

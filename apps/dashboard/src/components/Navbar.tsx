@@ -54,7 +54,9 @@ export function Navbar() {
 
         {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
-          <WalletMultiButton />
+          <div suppressHydrationWarning>
+            <WalletMultiButton />
+          </div>
           {/* Mobile hamburger */}
           <button
             className="show-mobile-only"

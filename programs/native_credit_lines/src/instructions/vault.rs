@@ -22,6 +22,7 @@ use pinocchio::{
 };
 
 use crate::state::*;
+#[allow(unused_imports)]
 use ika_dwallet_pinocchio::CPI_AUTHORITY_SEED;
 
 /// dWallet account layout — authority is a 32-byte pubkey at a fixed offset.
