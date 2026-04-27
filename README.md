@@ -136,7 +136,7 @@ The application will be available at `http://localhost:3000`.
 ## Project Structure
 
 ```
-excri/
+NCCLines/
 ├── programs/native_credit_lines/   # On-chain Solana program (Pinocchio)
 │   ├── src/instructions/           # 11 instruction handlers
 │   ├── src/state.rs                # Account layouts (Pool, Loan, Attestation)
