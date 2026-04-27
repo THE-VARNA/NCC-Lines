@@ -59,6 +59,8 @@ pub const IX_REQUEST_RELEASE_POLICY: u8 = 7;
 pub const IX_FINALIZE_RELEASE: u8 = 8;
 pub const IX_REQUEST_LIQUIDATION_POLICY: u8 = 9;
 pub const IX_FINALIZE_LIQUIDATION: u8 = 10;
+/// Devnet-only: seed pool without Encrypt CPI (for demo when pre-alpha not reachable)
+pub const IX_DEBUG_SEED_POOL: u8 = 100;
 
 pub mod state;
 pub mod errors;
@@ -90,6 +92,7 @@ fn process_instruction(
         IX_FINALIZE_RELEASE => instructions::policy::finalize_release(program_id, accounts, rest),
         IX_REQUEST_LIQUIDATION_POLICY => instructions::policy::request_liquidation(program_id, accounts, rest),
         IX_FINALIZE_LIQUIDATION => instructions::policy::finalize_liquidation(program_id, accounts, rest),
+        IX_DEBUG_SEED_POOL => instructions::debug_seed_pool::process(program_id, accounts, rest),
         _ => Err(ProgramError::InvalidInstructionData),
     }
 }

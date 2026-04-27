@@ -5,3 +5,4 @@ pub mod attestation;
 pub mod borrow;
 pub mod repay;
 pub mod policy;
+pub mod debug_seed_pool;
