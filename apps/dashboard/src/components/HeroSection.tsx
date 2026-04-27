@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import Link from "next/link";
 
 const TRUST_ITEMS = [
@@ -124,9 +124,7 @@ export function HeroSection() {
               Open Credit Line →
             </Link>
           ) : (
-            <div suppressHydrationWarning>
-              <WalletMultiButton />
-            </div>
+            <ClientWalletButton />
           )}
           <Link href="/proofs" id="btn-hero-proofs" className="btn btn-secondary btn-xl" style={{ textDecoration: "none" }}>
             View Proof Log

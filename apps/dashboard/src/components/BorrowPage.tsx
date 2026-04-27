@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/Navbar";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import { useState } from "react";
 
 type Step = "connect" | "dwallet" | "attestation" | "ready";
@@ -124,7 +124,7 @@ export function BorrowPage() {
               <p style={{ marginBottom: "1.5rem" }}>
                 Connect a Solana wallet to begin setting up your BTC credit line.
               </p>
-              <WalletMultiButton />
+              <ClientWalletButton />
             </div>
           )}
 

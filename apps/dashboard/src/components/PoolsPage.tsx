@@ -2,7 +2,7 @@
 
 import { Navbar } from "@/components/Navbar";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import { useState } from "react";
 
 interface Pool {
@@ -128,7 +128,7 @@ export function PoolsPage() {
               <div style={{ fontWeight: 600, marginBottom: "0.25rem" }}>Connect to manage positions</div>
               <p style={{ fontSize: "0.85rem" }}>View live pool stats and deposit liquidity.</p>
             </div>
-            <WalletMultiButton />
+            <ClientWalletButton />
           </div>
         )}
 

@@ -2,7 +2,7 @@
 
 import { usdCentsToDisplay, ltvPercent } from "@/lib/constants";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -248,8 +248,8 @@ export function LoanDashboard() {
             <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🔒</div>
             <h3 style={{ marginBottom: "0.5rem" }}>Connect Your Wallet</h3>
             <p style={{ marginBottom: "1.75rem" }}>Manage your live credit positions on Solana devnet.</p>
-            <div suppressHydrationWarning style={{ display: "flex", justifyContent: "center" }}>
-              <WalletMultiButton />
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <ClientWalletButton />
             </div>
           </div>
         )}

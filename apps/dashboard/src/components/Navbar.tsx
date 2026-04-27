@@ -1,6 +1,6 @@
 "use client";
 
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { ClientWalletButton } from "@/components/ClientWalletButton";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -27,9 +27,7 @@ export function Navbar() {
     <nav
       className="z-nav"
       style={{
-        background: scrolled
-          ? "rgba(2, 6, 15, 0.96)"
-          : "rgba(2, 6, 15, 0.72)",
+        background: scrolled ? "rgba(2,6,15,0.96)" : "rgba(2,6,15,0.72)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         borderBottom: scrolled
@@ -48,13 +46,11 @@ export function Navbar() {
         {/* Logo */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: "0.625rem", textDecoration: "none", flexShrink: 0 }}>
           <div style={{
-            width: 36, height: 36,
-            borderRadius: 10,
+            width: 36, height: 36, borderRadius: 10,
             background: "linear-gradient(135deg, #f59e0b, #d97706)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: "1.0625rem", fontWeight: 900, color: "#000",
-            boxShadow: "var(--shadow-amber)",
-            flexShrink: 0,
+            boxShadow: "var(--shadow-amber)", flexShrink: 0,
           }}>₿</div>
           <div className="hide-mobile">
             <span style={{ fontWeight: 800, fontSize: "0.9375rem", letterSpacing: "-0.025em", color: "var(--text-0)" }}>NCC</span>
@@ -62,7 +58,7 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop nav */}
+        {/* Desktop nav links */}
         <div className="hide-mobile" style={{ display: "flex", gap: "0.125rem", alignItems: "center" }}>
           {NAV_LINKS.map(({ href, label }) => {
             const active = pathname === href;
@@ -81,8 +77,7 @@ export function Navbar() {
                     position: "absolute", bottom: 2, left: "50%",
                     transform: "translateX(-50%)",
                     width: 16, height: 2,
-                    background: "var(--amber)",
-                    borderRadius: 2,
+                    background: "var(--amber)", borderRadius: 2,
                   }} />
                 )}
               </Link>
@@ -90,11 +85,9 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Right */}
+        {/* Right side */}
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", flexShrink: 0 }}>
-          <div suppressHydrationWarning>
-            <WalletMultiButton />
-          </div>
+          <ClientWalletButton />
           <button
             className="show-mobile-only"
             onClick={() => setOpen(!open)}
@@ -107,7 +100,7 @@ export function Navbar() {
               color: "var(--text-1)",
               fontSize: "1rem",
               lineHeight: 1,
-              transition: "background var(--t-sm), border-color var(--t-sm)",
+              transition: "background var(--t-sm)",
             }}
             aria-label="Toggle menu"
           >
