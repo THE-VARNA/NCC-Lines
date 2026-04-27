@@ -29,10 +29,7 @@ entrypoint!(process_instruction);
 /// Program ID — set this after deploying with `solana program deploy`
 pub const ID: Address = Address::new_from_array([0u8; 32]);
 
-// ── Sponsor Devnet Program IDs (official, from SDK source) ──
-// Encrypt:  4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8
-// Ika:      87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY
-// Both passed as accounts at runtime — not hardcoded into CPI logic.
+
 
 // ── Risk Parameters (basis points) ──
 pub const MAX_BORROW_LTV_BPS: u16 = 6000;   // 60%

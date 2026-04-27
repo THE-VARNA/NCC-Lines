@@ -19,9 +19,8 @@ use ika_dwallet_types::DWalletSignatureScheme;
 #[allow(unused_imports)]
 use ika_dwallet_types::{DWalletRequest, SignedRequestData};
 
-/// Ika dWallet gRPC endpoint — pre-alpha devnet
-/// Confirmed from: ika-pre-alpha/docs/src/getting-started/installation.md
-const DEFAULT_IKA_ENDPOINT: &str = "https://pre-alpha-dev-1.ika.ika-network.net:443";
+/// Ika dWallet gRPC endpoint
+const DEFAULT_IKA_ENDPOINT: &str = "";
 
 #[tokio::main]
 async fn main() {

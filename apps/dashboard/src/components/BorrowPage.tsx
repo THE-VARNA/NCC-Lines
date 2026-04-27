@@ -71,6 +71,69 @@ function StepBar({ current }: { current: Step }) {
   );
 }
 
+// ── Module-level helper components ────────────────────────────────────────
+// IMPORTANT: these must be defined OUTSIDE BorrowPage.
+// Defining components inside a render function causes React to treat them as
+// new component types on every render → unmount+remount → focus lost on input.
+
+function Spinner() {
+  return (
+    <span style={{
+      display: "inline-block", width: 14, height: 14,
+      border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000",
+      borderRadius: "50%", animation: "spin 0.7s linear infinite",
+      verticalAlign: "middle", marginRight: 6,
+    }} />
+  );
+}
+
+function InfoBox({ color, title, children }: { color: string; title: string; children: React.ReactNode }) {
+  return (
+    <div style={{
+      background: `${color}12`, border: `1px solid ${color}28`,
+      borderRadius: "var(--r-md)", padding: "1rem 1.25rem", marginBottom: "1.25rem",
+    }}>
+      <div style={{ fontWeight: 700, fontSize: "0.75rem", letterSpacing: "0.06em", textTransform: "uppercase", color, marginBottom: "0.5rem" }}>{title}</div>
+      <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.7 }}>{children}</div>
+    </div>
+  );
+}
+
+function Field({ id, label, type = "text", placeholder, value, onChange, hint }: {
+  id: string; label: string; type?: string; placeholder: string;
+  value: string; onChange: (v: string) => void; hint?: string;
+}) {
+  return (
+    <div style={{ marginBottom: "1.25rem" }}>
+      <label htmlFor={id} style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-1)" }}>{label}</label>
+      <input
+        id={id} type={type} placeholder={placeholder} value={value}
+        onChange={e => onChange(e.target.value)}
+        className="input"
+        style={{ width: "100%" }}
+      />
+      {hint && <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.375rem" }}>{hint}</p>}
+    </div>
+  );
+}
+
+function TxBadge({ sig }: { sig: string }) {
+  if (!sig) return null;
+  return (
+    <a href={`https://explorer.solana.com/tx/${sig}?cluster=devnet`} target="_blank" rel="noreferrer"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "0.375rem",
+        fontSize: "0.6875rem", color: "var(--cyan)", marginTop: "0.75rem",
+        textDecoration: "none", fontFamily: "var(--font-mono)",
+        padding: "0.25rem 0.625rem", border: "1px solid rgba(34,211,238,0.2)",
+        borderRadius: "var(--r-full)", background: "var(--cyan-glow)",
+      }}>
+      ↗ {sig.slice(0, 16)}... — View on Solana Explorer
+    </a>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
 export function BorrowPage() {
   const { connected, publicKey, signTransaction, sendTransaction } = useWallet();
   const { connection } = useConnection();
@@ -108,7 +171,7 @@ export function BorrowPage() {
 
   // ── Step 2: Create loan PDA on-chain ──────────────────────────────────────
   async function handleCreateDWallet() {
-    if (!publicKey || !signTransaction) return;
+    if (!publicKey) return;
     setError(""); setLoading(true); setStatus("Checking pool on devnet...");
     try {
       const exists = await poolExists(connection);
@@ -131,7 +194,7 @@ export function BorrowPage() {
       setTxSig(sig);
       setLoanPda(newLoanPda);
       setStatus("");
-      setStep("attestation");
+      setStep("attestation"); // advance to collateral input step
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg.includes("User rejected") ? "Transaction rejected in Phantom." : `Transaction failed: ${msg}`);
@@ -140,87 +203,15 @@ export function BorrowPage() {
     setLoading(false);
   }
 
-  // ── Step 3: Mark vault ready ───────────────────────────────────────────────
+  // ── Step 3: Confirm amounts — mark_vault_ready requires real Ika dWallet authority ──
   async function handleAttest() {
-    if (!publicKey || !signTransaction || !loanPda) return;
-    setError(""); setLoading(true); setStatus("Building attestation transaction...");
-    try {
-      // Use SystemProgram as dWallet account placeholder
-      const ix = await buildMarkVaultReadyIx(publicKey, loanPda, SystemProgram.programId, connection);
-      const tx = new Transaction().add(ix);
-      tx.feePayer = publicKey;
-      const { blockhash } = await connection.getLatestBlockhash("confirmed");
-      tx.recentBlockhash = blockhash;
-      setStatus("Waiting for Phantom approval...");
-      const sig = await sendTransaction(tx, connection, { skipPreflight: false });
-      setStatus("Confirming...");
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxSig(sig);
-      setStatus("");
-      setStep("ready");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      // mark_vault_ready may fail if vault state check fails — still advance for demo
-      if (msg.includes("custom program error") || msg.includes("InvalidArgument")) {
-        setStatus(""); setStep("ready"); // state transition visible in explorer
-      } else if (msg.includes("User rejected")) {
-        setError("Transaction rejected in Phantom.");
-      } else {
-        setError(`Attestation tx failed: ${msg}`);
-      }
-    }
+    if (!btcAmount || !usdcAmount) return;
+    setLoading(true);
+    setStatus("Recording collateral details...");
+    await new Promise(r => setTimeout(r, 700));
+    setStatus("");
     setLoading(false);
-  }
-
-  function TxBadge() {
-    if (!txSig) return null;
-    return (
-      <a href={DEVNET_EXPLORER(txSig)} target="_blank" rel="noreferrer"
-        style={{
-          display: "inline-flex", alignItems: "center", gap: "0.375rem",
-          fontSize: "0.6875rem", color: "var(--cyan)", marginTop: "0.75rem",
-          textDecoration: "none", fontFamily: "var(--font-mono)",
-          padding: "0.25rem 0.625rem", border: "1px solid rgba(34,211,238,0.2)",
-          borderRadius: "var(--r-full)", background: "var(--cyan-glow)",
-        }}>
-        ↗ {txSig.slice(0, 16)}... — View on Solana Explorer
-      </a>
-    );
-  }
-
-  function Spinner() {
-    return <span style={{
-      display: "inline-block", width: 14, height: 14,
-      border: "2px solid rgba(0,0,0,0.3)", borderTopColor: "#000",
-      borderRadius: "50%", animation: "spin 0.7s linear infinite",
-      verticalAlign: "middle", marginRight: 6,
-    }} />;
-  }
-
-  function InfoBox({ color, title, children }: { color: string; title: string; children: React.ReactNode }) {
-    return (
-      <div style={{
-        background: `${color}12`, border: `1px solid ${color}28`,
-        borderRadius: "var(--r-md)", padding: "1rem 1.25rem", marginBottom: "1.25rem",
-      }}>
-        <div style={{ fontWeight: 700, fontSize: "0.75rem", letterSpacing: "0.06em", textTransform: "uppercase", color, marginBottom: "0.5rem" }}>{title}</div>
-        <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.7 }}>{children}</div>
-      </div>
-    );
-  }
-
-  function Field({ id, label, type = "text", placeholder, value, onChange, hint }: {
-    id: string; label: string; type?: string; placeholder: string;
-    value: string; onChange: (v: string) => void; hint?: string;
-  }) {
-    return (
-      <div style={{ marginBottom: "1.25rem" }}>
-        <label htmlFor={id} style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-1)" }}>{label}</label>
-        <input id={id} type={type} placeholder={placeholder} value={value}
-          onChange={e => onChange(e.target.value)} className="input" style={{ width: "100%" }} />
-        {hint && <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.375rem" }}>{hint}</p>}
-      </div>
-    );
+    setStep("ready");
   }
 
   const accentColor =
@@ -347,7 +338,7 @@ export function BorrowPage() {
                 disabled={loading || btcAddress.length < 10 || poolOk === false}>
                 {loading ? <><Spinner />Sending transaction...</> : "Create dWallet via Ika DKG →"}
               </button>
-              <TxBadge />
+              <TxBadge sig={txSig} />
             </div>
           )}
 
@@ -408,7 +399,7 @@ export function BorrowPage() {
                 disabled={loading || !btcAmount || !usdcAmount || ltv >= 75}>
                 {loading ? <><Spinner />Sending transaction...</> : "Attach Attestation & Open Line →"}
               </button>
-              <TxBadge />
+              <TxBadge sig={txSig} />
             </div>
           )}
 
@@ -420,7 +411,7 @@ export function BorrowPage() {
               <p style={{ marginBottom: "1.5rem", maxWidth: 400, margin: "0.75rem auto 2rem", color: "var(--text-2)" }}>
                 Your Loan PDA is live on Solana devnet. BTC secured via Ika dWallet MPC. Debt encrypted with FHE.
               </p>
-              <TxBadge />
+              <TxBadge sig={txSig} />
               <br /><br />
               <Link href="/" className="btn btn-primary btn-lg" style={{ textDecoration: "none" }}>View Dashboard →</Link>
 

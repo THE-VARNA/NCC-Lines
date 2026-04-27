@@ -44,11 +44,11 @@ export async function findPoolPda(
   );
 }
 
-export async function findLoanPda(
+export function findLoanPda(
   poolId: Uint8Array,
   loanIndex: number,
   programId: PublicKey = NCC_PROGRAM_ID
-): Promise<[PublicKey, number]> {
+): [PublicKey, number] {
   const indexBuf = Buffer.alloc(4);
   indexBuf.writeUInt32LE(loanIndex);
   return PublicKey.findProgramAddressSync(
@@ -95,15 +95,17 @@ export async function buildCreateLoanIx(
   data.set(dwalletPubkey.toBytes(), 33);
   data[65] = loanBump;
 
+  // NOTE: poolId in instruction data must match what pool was seeded with.
+  // create_loan writes loan_count++ back to pool → pool MUST be isWritable: true.
   const ix = new TransactionInstruction({
     programId: NCC_PROGRAM_ID,
     keys: [
-      { pubkey: loanPda,           isSigner: false, isWritable: true  }, // 0: Loan PDA
-      { pubkey: poolPda,           isSigner: false, isWritable: false  }, // 1: Pool PDA (readonly per instruction)
-      { pubkey: dwalletPubkey,     isSigner: false, isWritable: false  }, // 2: dWallet account
-      { pubkey: borrower,          isSigner: true,  isWritable: false  }, // 3: Borrower
-      { pubkey: borrower,          isSigner: true,  isWritable: true   }, // 4: Payer
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // 5: System
+      { pubkey: loanPda,                    isSigner: false, isWritable: true  }, // 0: Loan PDA (created)
+      { pubkey: poolPda,                    isSigner: false, isWritable: true  }, // 1: Pool PDA (loan_count++)
+      { pubkey: dwalletPubkey,              isSigner: false, isWritable: false }, // 2: dWallet account
+      { pubkey: borrower,                   isSigner: true,  isWritable: false }, // 3: Borrower (signer)
+      { pubkey: borrower,                   isSigner: true,  isWritable: true  }, // 4: Payer (signer+writable)
+      { pubkey: SystemProgram.programId,    isSigner: false, isWritable: false }, // 5: System
     ],
     data,
   });

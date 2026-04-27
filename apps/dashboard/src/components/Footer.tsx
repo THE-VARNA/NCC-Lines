@@ -49,7 +49,7 @@ export function Footer() {
                 <div>
                   <span style={{ fontWeight: 700, fontSize: "0.8125rem", color: "var(--cyan)" }}>Encrypt FHE</span>
                   <br />
-                  <code style={{ fontSize: "0.6rem", color: "var(--text-3)" }}>4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8</code>
+                  <code style={{ fontSize: "0.6rem", color: "var(--text-3)" }}>Pre-alpha Devnet</code>
                 </div>
               </div>
               {/* Ika */}
@@ -64,7 +64,7 @@ export function Footer() {
                 <div>
                   <span style={{ fontWeight: 700, fontSize: "0.8125rem", color: "var(--violet)" }}>Ika dWallet MPC</span>
                   <br />
-                  <code style={{ fontSize: "0.6rem", color: "var(--text-3)" }}>87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY</code>
+                  <code style={{ fontSize: "0.6rem", color: "var(--text-3)" }}>Pre-alpha Devnet</code>
                 </div>
               </div>
               {/* Solana */}

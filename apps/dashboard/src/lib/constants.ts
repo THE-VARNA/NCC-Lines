@@ -1,26 +1,22 @@
-// ── Official pre-alpha program IDs (verified from SDK source) ─────────────
-// Encrypt: confirmed in encrypt-pre-alpha docs/README across all commits
-// Ika:     confirmed in ika-pre-alpha docs/README across all commits
-
 export const PROGRAM_ID =
   process.env.NEXT_PUBLIC_PROGRAM_ID ?? "11111111111111111111111111111111";
 
 export const ENCRYPT_PROGRAM_ID =
   process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ??
-  "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8";
+  "11111111111111111111111111111111";
 
 export const IKA_DWALLET_PROGRAM_ID =
   process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ??
-  "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY";
+  "11111111111111111111111111111111";
 
 // ── gRPC endpoints (server-side only — not exposed to browser) ─────────────
 export const ENCRYPT_GRPC_ENDPOINT =
   process.env.ENCRYPT_GRPC_ENDPOINT ??
-  "https://pre-alpha-dev-1.encrypt.ika-network.net:443";
+  "";
 
 export const IKA_GRPC_ENDPOINT =
   process.env.IKA_GRPC_ENDPOINT ??
-  "https://pre-alpha-dev-1.ika.ika-network.net:443";
+  "";
 
 // ── Risk parameters (mirrors on-chain constants in lib.rs) ─────────────────
 export const MAX_BORROW_LTV_BPS = 6000;   // 60%

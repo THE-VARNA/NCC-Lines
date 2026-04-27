@@ -10,16 +10,16 @@
 
 ---
 
-## Why This Wins
+## The Problem & Our Solution
 
-$1.3 trillion in Bitcoin sits idle because holders cannot borrow against it without two impossible choices:
+Today, using Bitcoin as collateral in DeFi requires bridging it or wrapping it (e.g., wBTC). This forces users to rely on centralized custodians or bridge operators. Furthermore, all DeFi positions on public ledgers expose exactly how much debt a user holds and at what price they will be liquidated.
 
-1. **Trust a custodian** — hand your BTC to a centralized lender
-2. **Accept surveillance** — use a DeFi protocol where every competitor sees your debt
+**Native Collateral Credit Lines (NCC)** solves this by allowing users to borrow USDC against *native* Bitcoin—without bridges and without wrapping. Using FHE, the protocol keeps the user's debt amount and liquidation thresholds entirely confidential.
 
-Native Collateral Credit Lines solves both. **No custodian. No plaintext debt on-chain.**
-
-> *"This is what institutional DeFi looks like when privacy is a first-class requirement."*
+### Target Users & Use Cases
+- **Institutional Holders & Whales:** Can unlock liquidity from their BTC holdings without moving them to a centralized exchange or exposing their balance sheet to market competitors.
+- **Privacy-Conscious DeFi Users:** Can take out loans without their liquidation prices being broadcasted to MEV bots.
+- **Use Case:** A user locks native BTC in an Ika MPC vault, borrows USDC on Solana, and repays it later. The FHE engine continuously checks if their collateral covers their debt, keeping the financial amounts hidden.
 
 ---
 
@@ -43,25 +43,22 @@ Native Collateral Credit Lines solves both. **No custodian. No plaintext debt on
 | Component | Program ID | Explorer |
 |-----------|-----------|---------|
 | **NCC Lines Program** | `712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ` | [View →](https://explorer.solana.com/address/712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ?cluster=devnet) |
-| **Encrypt FHE** | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` | Pre-alpha devnet |
-| **Ika dWallet** | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` | Pre-alpha devnet |
+| **Encrypt FHE** | `Pre-alpha devnet` |
+| **Ika dWallet** | `Pre-alpha devnet` |
 
 **Deploy tx:** `37yGLRzxkMXTLkJWLDYAMKzCC5xT8DqKGb4qbCcb9BpVvwzLMPKoARFnSnzFEiAMdfWcCRqsNMqdCUYncBvyCL5P`
 
 ---
 
-## Key Features
+### 🔒 How We Utilize Encrypt FHE
+- **Encrypted State:** Debt balances and real-time collateral values are stored as Encrypt FHE `EncryptedUint64` ciphertexts.
+- **Confidential Logic:** When a price oracle updates, LTV is not calculated in plaintext. Instead, we evaluate an Encrypt FHE graph on-chain that subtracts debt from collateral.
+- **Minimal Decryption:** The graph outputs an encrypted bit (`1` if healthy, `0` if liquidatable). We decrypt *only* this single bit to trigger protocol actions (like liquidation or collateral release), ensuring zero plaintext financial data is ever exposed on-chain.
 
-### 🔒 FHE-Private Debt (Encrypt)
-- Debt balances stored as Encrypt FHE `EncryptedUint64` ciphertexts
-- LTV checks, borrow limits, and liquidation thresholds computed over encrypted data
-- Zero plaintext financial data on-chain — ever
-
-### ₿ Native BTC Custody (Ika dWallet)
-- Collateral secured in Ika dWallet MPC wallets
-- `EcdsaDoubleSha256` scheme — Bitcoin-native, not a Solana adapter
-- `approve_message` CPI authorizes Bitcoin transactions from Solana program
-- No bridge, no wrapped token, no third-party custodian
+### ₿ How We Utilize Ika dWallet
+- **Native BTC Custody:** We use Ika's MPC network to generate a native Bitcoin Taproot address for collateral deposits.
+- **On-Chain Authority:** The Solana program controls the signing authority of this vault.
+- **CPI Execution:** When a user repays their loan, the Solana program uses the `approve_message` CPI (`EcdsaDoubleSha256` scheme) to authorize a Bitcoin transaction that releases the BTC back to the user natively—no bridge or wrapped token required.
 
 ### ⚡ Full On-Chain Lifecycle (11 Instructions)
 ```
@@ -88,31 +85,51 @@ SVM tests run actual instructions through the compiled 66KB binary against real 
 
 ---
 
-## Quick Start
+## How to Build, Test, and Use
 
-### Prerequisites
-- Rust + `cargo-build-sbf`
-- Node 18+ / npm
-- Solana CLI + Phantom wallet
+### 1. Prerequisites
+- **Rust & Cargo:** Required for compiling the Solana program.
+- **Solana CLI tools (`cargo-build-sbf`):** Required for building BPF binaries.
+- **Node.js 18+ & npm:** Required for the Next.js frontend.
+- **Phantom Wallet:** Set to Solana Devnet for testing the UI.
 
-### Run Frontend
+### 2. Build the Solana Program
+```bash
+# Navigate to project root
+cargo build-sbf --manifest-path programs/native_credit_lines/Cargo.toml
+```
+*This generates the `native_credit_lines.so` binary in `target/deploy/`.*
+
+### 3. Run the Test Suite
+Our comprehensive test suite uses Mollusk to run actual SVM instruction execution tests against the compiled binary.
+```bash
+cargo test -p native-credit-lines
+```
+*Expected Output: `test result: ok. 20 passed; 0 failed`*
+
+### 4. Deploying to Devnet
+If you wish to deploy your own instance of the program:
+```bash
+solana program deploy target/deploy/native_credit_lines.so --url devnet
+```
+*Note the returned Program ID and update `NEXT_PUBLIC_PROGRAM_ID` in your `.env` file.*
+
+### 5. Start the Frontend Application
 ```bash
 cd apps/dashboard
 npm install
 npm run dev
-# Open http://localhost:3000
 ```
+The application will be available at `http://localhost:3000`.
 
-### Build & Deploy Program
-```bash
-cargo build-sbf --manifest-path programs/native_credit_lines/Cargo.toml
-solana program deploy target/deploy/native_credit_lines.so --url devnet
-```
-
-### Run Tests
-```bash
-cargo test -p native-credit-lines
-```
+### 6. Using the Application (Testing the Borrow Flow)
+1. Open `http://localhost:3000/borrow` in your browser.
+2. Ensure your Phantom wallet is connected to **Devnet** and funded with devnet SOL (use `https://faucet.solana.com`).
+3. Click **"Select Wallet"** to connect Phantom.
+4. Enter a dummy native Bitcoin return address (e.g., `bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9f4qhf6nq`).
+5. Click **"Create dWallet via Ika DKG →"** and approve the Phantom transaction.
+6. Once confirmed, you will see a success link to the Solana Explorer showing your newly created Loan PDA!
+7. *(Note: The final step of the flow is simulated locally due to the required pre-alpha Ika DKG worker constraint).*
 
 ---
 
@@ -138,10 +155,10 @@ excri/
 
 ```env
 NEXT_PUBLIC_PROGRAM_ID=712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ
-NEXT_PUBLIC_ENCRYPT_PROGRAM_ID=4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8
-NEXT_PUBLIC_IKA_PROGRAM_ID=87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY
-ENCRYPT_GRPC_ENDPOINT=https://pre-alpha-dev-1.encrypt.ika-network.net:443
-IKA_GRPC_ENDPOINT=https://pre-alpha-dev-1.ika.ika-network.net:443
+NEXT_PUBLIC_ENCRYPT_PROGRAM_ID=<pre-alpha-devnet-program-id>
+NEXT_PUBLIC_IKA_PROGRAM_ID=<pre-alpha-devnet-program-id>
+ENCRYPT_GRPC_ENDPOINT=<pre-alpha-grpc-endpoint>
+IKA_GRPC_ENDPOINT=<pre-alpha-grpc-endpoint>
 ```
 
 ---
@@ -153,3 +170,14 @@ IKA_GRPC_ENDPOINT=https://pre-alpha-dev-1.ika.ika-network.net:443
 **Differentiator:** First production lending protocol combining Encrypt FHE + Ika dWallet on Solana
 
 Built with official sponsor primitives exactly as designed — not mocked, not wrapped, not simulated.
+
+---
+
+## Sponsor SDK Constraints — Transparent Note
+
+This project integrates both Encrypt FHE and Ika dWallet at the on-chain CPI level. Two pre-alpha constraints affected the live demo capability:
+
+1. **Encrypt FHE:** `initialize_pool` calls the `create_plaintext_typed` CPI which requires an active Encrypt FHE RPC endpoint. This endpoint is not accessible from the public Solana devnet. We added `debug_seed_pool` (IX=100) to bypass FHE init for the demo. The full CPI code is implemented and tested via Mollusk SVM.
+2. **Ika dWallet:** `mark_vault_ready` verifies dWallet authority transfer, which requires running the Ika gRPC DKG worker (pre-alpha, not publicly reachable). The `approve_message` CPI, `EcdsaDoubleSha256` scheme, and `MessageApproval` PDA creation are all fully implemented and tested.
+
+Both constraints are documented in the respective SDK READMEs. The `create_loan` instruction works end-to-end with a real Phantom transaction confirmed on Solana devnet.

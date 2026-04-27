@@ -47,22 +47,8 @@ cargo run -p ika-worker -- status --dwallet-id <DWALLET_HEX>
 ## Run Integration Tests
 ```bash
 cargo test -p native-credit-lines
-# Expected: 14 passed; 0 failed
+# Expected: 20 passed; 0 failed
 ```
-
-## Devnet Program IDs (official, confirmed from SDK source)
-| Component | Program ID |
-|-----------|------------|
-| This program | `<solana program deploy output>` |
-| Encrypt FHE | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` |
-| Ika dWallet | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` |
-
-## gRPC Endpoints
-| Service | Endpoint |
-|---------|----------|
-| Encrypt gRPC | `https://pre-alpha-dev-1.encrypt.ika-network.net:443` |
-| Ika dWallet gRPC | `https://pre-alpha-dev-1.ika.ika-network.net:443` |
-
 ## Airdrop More SOL If Needed
 ```bash
 solana airdrop 2 && solana balance
