@@ -12,9 +12,15 @@
 
 ## The Problem & Our Solution
 
-Today, using Bitcoin as collateral in DeFi requires bridging it or wrapping it (e.g., wBTC). This forces users to rely on centralized custodians or bridge operators. Furthermore, all DeFi positions on public ledgers expose exactly how much debt a user holds and at what price they will be liquidated.
 
+ "Welcome to Native Collateral Credit Lines, or NCC.
+> 
+> **The Problem:** Right now, there is $1.3 trillion in Bitcoin sitting idle. If a user wants to use that Bitcoin as collateral in DeFi, they have two terrible choices. First, they have to bridge it or wrap it—like wBTC—which introduces centralization risks and bridge exploits. Furthermore, all DeFi positions on public ledgers expose exactly how much debt a user holds and at what price they will be liquidated.
+> 
+> **Why it matters:** Institutional holders, whales, and privacy-conscious users do not want to broadcast their debt balances and liquidation thresholds to the entire world, where MEV bots and competitors can hunt their positions.
+> 
 **Native Collateral Credit Lines (NCC)** solves this by allowing users to borrow USDC against *native* Bitcoin—without bridges and without wrapping. Using FHE, the protocol keeps the user's debt amount and liquidation thresholds entirely confidential.
+
 
 ### Target Users & Use Cases
 - **Institutional Holders & Whales:** Can unlock liquidity from their BTC holdings without moving them to a centralized exchange or exposing their balance sheet to market competitors.
