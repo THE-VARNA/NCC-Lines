@@ -10,10 +10,10 @@ import { NCC_PROGRAM_ID, findPoolPda, findLoanPda, getPoolId } from "./transacti
 
 // ── Program IDs (official devnet) ─────────────────────────────────────────
 export const ENCRYPT_PROGRAM_ID_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ?? "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
+  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID || "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
 );
 export const IKA_PROGRAM_ID_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ?? "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
+  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID || "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
 );
 
 // ── State offsets (mirrors state.rs exactly) ──────────────────────────────

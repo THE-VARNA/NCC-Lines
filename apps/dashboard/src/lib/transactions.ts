@@ -18,15 +18,15 @@ import {
 
 // ── Program IDs ────────────────────────────────────────────────────────────
 export const NCC_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_PROGRAM_ID ?? "712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ"
+  process.env.NEXT_PUBLIC_PROGRAM_ID || "712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ"
 );
 
 export const ENCRYPT_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ?? "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
+  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID || "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
 );
 
 export const IKA_PROGRAM_ID = new PublicKey(
-  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ?? "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
+  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID || "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
 );
 
 // ── Instruction discriminators (matches lib.rs) ────────────────────────────
