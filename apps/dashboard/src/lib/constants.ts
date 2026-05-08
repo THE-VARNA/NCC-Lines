@@ -1,22 +1,24 @@
 export const PROGRAM_ID =
-  process.env.NEXT_PUBLIC_PROGRAM_ID ?? "11111111111111111111111111111111";
+  process.env.NEXT_PUBLIC_PROGRAM_ID ?? "712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ";
 
+// Official Encrypt pre-alpha devnet program ID
 export const ENCRYPT_PROGRAM_ID =
-  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ??
-  "11111111111111111111111111111111";
+  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID ?? "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8";
 
+// Official Ika dWallet pre-alpha devnet program ID
 export const IKA_DWALLET_PROGRAM_ID =
-  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ??
-  "11111111111111111111111111111111";
+  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID ?? "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY";
 
-// ── gRPC endpoints (server-side only — not exposed to browser) ─────────────
+// ── gRPC endpoints (server-side only — never exposed to browser) ────────────
 export const ENCRYPT_GRPC_ENDPOINT =
-  process.env.ENCRYPT_GRPC_ENDPOINT ??
-  "";
+  process.env.ENCRYPT_GRPC_ENDPOINT ?? "pre-alpha-dev-1.encrypt.ika-network.net:443";
 
 export const IKA_GRPC_ENDPOINT =
-  process.env.IKA_GRPC_ENDPOINT ??
-  "";
+  process.env.IKA_GRPC_ENDPOINT ?? "pre-alpha-dev-1.ika.ika-network.net:443";
+
+// ── Solana RPC ──────────────────────────────────────────────────────────────
+export const SOLANA_RPC =
+  process.env.NEXT_PUBLIC_SOLANA_RPC ?? "https://api.devnet.solana.com";
 
 // ── Risk parameters (mirrors on-chain constants in lib.rs) ─────────────────
 export const MAX_BORROW_LTV_BPS = 6000;   // 60%
@@ -36,6 +38,7 @@ export const IX = {
   FINALIZE_RELEASE: 8,
   REQUEST_LIQUIDATION_POLICY: 9,
   FINALIZE_LIQUIDATION: 10,
+  DEBUG_SEED_POOL: 100,
 } as const;
 
 export const ASSET_BTC = 1;
@@ -79,3 +82,9 @@ export function ltvPercent(debtUsdCents: bigint, collateralUsdCents: bigint): nu
   if (collateralUsdCents === 0n) return 0;
   return Math.round(Number((debtUsdCents * 10000n) / collateralUsdCents) / 100);
 }
+
+// ── Devnet explorer helpers ────────────────────────────────────────────────
+export const explorerTx = (sig: string) =>
+  `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+export const explorerAddress = (addr: string) =>
+  `https://explorer.solana.com/address/${addr}?cluster=devnet`;
