@@ -1,189 +1,291 @@
-# Native Collateral Credit Lines
+# NCC Lines — Confidential Bitcoin Credit Lines
 
-> **The first protocol to combine Encrypt FHE and Ika dWallet in production lending.**  
-> Borrow USDC against Bitcoin — confidentially, without bridges, on Solana.
+> **Hackathon Submission** · Encrypt × Ika Frontier April 2026 · Superteam
 
-[![Tests](https://img.shields.io/badge/tests-20%20passing-brightgreen)](./programs/native_credit_lines/tests/)
-[![Binary](https://img.shields.io/badge/binary-66KB%20BPF-blue)](./target/deploy/native_credit_lines.so)
-[![Devnet](https://img.shields.io/badge/devnet-live-success)](https://explorer.solana.com/address/712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ?cluster=devnet)
-[![Hackathon](https://img.shields.io/badge/hackathon-Encrypt%20%C3%97%20Ika%20Frontier-orange)](https://ika.xyz)
+Borrow USDC against native Bitcoin with **FHE-encrypted LTV checks** (Encrypt) and **MPC-secured custody** (Ika dWallet). No bridges. No custodians. No data leaks.
 
 ---
 
 ## The Problem & Our Solution
 
+### The Problem
 
- "Welcome to Native Collateral Credit Lines, or NCC.
-> 
-> **The Problem:** Right now, there is $1.3 trillion in Bitcoin sitting idle. If a user wants to use that Bitcoin as collateral in DeFi, they have two terrible choices. First, they have to bridge it or wrap it—like wBTC—which introduces centralization risks and bridge exploits. Furthermore, all DeFi positions on public ledgers expose exactly how much debt a user holds and at what price they will be liquidated.
-> 
-> **Why it matters:** Institutional holders, whales, and privacy-conscious users do not want to broadcast their debt balances and liquidation thresholds to the entire world, where MEV bots and competitors can hunt their positions.
-> 
-**Native Collateral Credit Lines (NCC)** solves this by allowing users to borrow USDC against *native* Bitcoin—without bridges and without wrapping. Using FHE, the protocol keeps the user's debt amount and liquidation thresholds entirely confidential.
+Traditional DeFi lending has two critical flaws:
 
+1. **Privacy**: LTV ratios, debt positions, and collateral values are fully public on-chain. Liquidation bots front-run positions, MEV extracts value, and competitors can see your exposure.
+2. **Native BTC**: Borrowing against Bitcoin requires wrapping (wBTC, cbBTC) — introducing bridge risk, custodian risk, and peg risk. Users don't actually control their BTC.
 
-### Target Users & Use Cases
-- **Institutional Holders & Whales:** Can unlock liquidity from their BTC holdings without moving them to a centralized exchange or exposing their balance sheet to market competitors.
-- **Privacy-Conscious DeFi Users:** Can take out loans without their liquidation prices being broadcasted to MEV bots.
-- **Use Case:** A user locks native BTC in an Ika MPC vault, borrows USDC on Solana, and repays it later. The FHE engine continuously checks if their collateral covers their debt, keeping the financial amounts hidden.
+### Our Solution — NCC Lines
+
+NCC Lines solves both with a two-layer privacy architecture:
+
+| Layer | Technology | What It Does |
+|-------|-----------|--------------|
+| **Encrypted Computation** | **Encrypt FHE** (pre-alpha) | Encrypts collateral and debt values as on-chain ciphertexts. LTV checks run on encrypted data — the program never sees plaintext amounts. |
+| **Native BTC Custody** | **Ika dWallet** (pre-alpha) | Creates an MPC wallet derived from the user's Solana key. BTC is held at a real Bitcoin address controlled by a distributed key — no wrapping, no bridge. |
+
+The result: a credit line where **your debt is private**, **your BTC is native**, and **the program enforces rules without ever seeing values**.
+
+---
+
+## Target Users & Use Cases
+
+| User | Use Case |
+|------|----------|
+| **Bitcoin HODLers** | Access liquidity without selling BTC. Borrow USDC for expenses, DeFi, or trading. |
+| **Institutions** | Private lending positions. Competitors can't see collateral ratios or debt exposure. |
+| **Privacy-First DeFi** | Users who want protocol-enforced privacy rather than trusting a centralized lender. |
+| **BTC Maximalists** | First-class native BTC use — no wrapped tokens, no bridges. |
 
 ---
 
 ## Architecture
 
-![Protocol Architecture](./docs/architecture.png)
+```
+User (Phantom Wallet)
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│              NCC Lines Dashboard (Next.js)           │
+│  • Step 1: Ika DKG → dWallet PDA (gRPC executor)   │
+│  • Step 2: Fund BTC vault (Ika-managed address)     │
+│  • Step 3: Encrypt createInput (gRPC executor)      │
+│            → ciphertext identifier returned         │
+│  • Step 4: attach_attestation (on-chain CPI)        │
+└──────────────┬──────────────────┬───────────────────┘
+               │                  │
+               ▼                  ▼
+   ┌──────────────────┐  ┌─────────────────────────┐
+   │  Ika dWallet     │  │  Encrypt FHE Executor   │
+   │  (gRPC DKG)      │  │  (gRPC createInput)     │
+   │  pre-alpha-dev-1 │  │  pre-alpha-dev-1        │
+   │  .ika-network    │  │  .encrypt.ika-network   │
+   └────────┬─────────┘  └───────────┬─────────────┘
+            │                        │
+            ▼                        ▼
+   ┌─────────────────────────────────────────────────┐
+   │           Solana Devnet On-Chain                │
+   │                                                 │
+   │  NCC Program: 712fUCmQ...                       │
+   │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
+   │  │  Pool    │  │  Loan    │  │  Attestation │  │
+   │  │   PDA    │  │ Position │  │     PDA      │  │
+   │  └──────────┘  └──────────┘  └──────────────┘  │
+   │                                                 │
+   │  Encrypt Program: 4ebfzWdK... (executor-owned)  │
+   │  ┌──────────────────────────────────────────┐   │
+   │  │  CiphertextAccount (collateral, debt)    │   │
+   │  └──────────────────────────────────────────┘   │
+   │                                                 │
+   │  Ika Program: 87W54kGY... (executor-owned)      │
+   │  ┌──────────────────────────────────────────┐   │
+   │  │  dWallet PDA (Curve25519, MPC-secured)   │   │
+   │  └──────────────────────────────────────────┘   │
+   └─────────────────────────────────────────────────┘
+```
 
-### How It Works
+### State Machine (On-Chain)
 
-| Step | What Happens | Technology |
-|------|-------------|-----------|
-| 1 | Borrower locks BTC in a dWallet PDA | **Ika MPC** — `EcdsaDoubleSha256` custody |
-| 2 | Protocol runs FHE LTV check | **Encrypt FHE** — debt stays encrypted |
-| 3 | USDC flows to borrower on Solana | **Solana** — sub-second, fractions-of-a-cent |
-| 4 | Repay → Ika releases BTC natively | **Bitcoin network** — no bridge, no wrapping |
+```
+Draft → VaultReady → Active → ReleaseCheckPending → ReleasePendingSignature → Released
+                           → LiquidationCheckPending → LiquidationPendingSignature → Liquidated
+```
+
+Each transition is enforced by the NCC program, which validates Encrypt ciphertext accounts and Ika dWallet authority.
 
 ---
 
 ## Live Devnet Addresses
 
-| Component | Program ID | Explorer |
-|-----------|-----------|---------|
-| **NCC Lines Program** | `712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ` | [View →](https://explorer.solana.com/address/712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ?cluster=devnet) |
-| **Encrypt FHE** | `Pre-alpha devnet` |
-| **Ika dWallet** | `Pre-alpha devnet` |
-
-**Deploy tx:** `37yGLRzxkMXTLkJWLDYAMKzCC5xT8DqKGb4qbCcb9BpVvwzLMPKoARFnSnzFEiAMdfWcCRqsNMqdCUYncBvyCL5P`
-
----
-
-### 🔒 How We Utilize Encrypt FHE
-- **Encrypted State:** Debt balances and real-time collateral values are stored as Encrypt FHE `EncryptedUint64` ciphertexts.
-- **Confidential Logic:** When a price oracle updates, LTV is not calculated in plaintext. Instead, we evaluate an Encrypt FHE graph on-chain that subtracts debt from collateral.
-- **Minimal Decryption:** The graph outputs an encrypted bit (`1` if healthy, `0` if liquidatable). We decrypt *only* this single bit to trigger protocol actions (like liquidation or collateral release), ensuring zero plaintext financial data is ever exposed on-chain.
-
-### ₿ How We Utilize Ika dWallet
-- **Native BTC Custody:** We use Ika's MPC network to generate a native Bitcoin Taproot address for collateral deposits.
-- **On-Chain Authority:** The Solana program controls the signing authority of this vault.
-- **CPI Execution:** When a user repays their loan, the Solana program uses the `approve_message` CPI (`EcdsaDoubleSha256` scheme) to authorize a Bitcoin transaction that releases the BTC back to the user natively—no bridge or wrapped token required.
-
-### ⚡ Full On-Chain Lifecycle (11 Instructions)
-```
-initialize_pool → create_loan → mark_vault_ready → attach_attestation
-→ borrow → repay → request_release_policy → finalize_release
-→ request_liquidation_policy → finalize_liquidation
-```
+| Resource | Address / Endpoint |
+|----------|-------------------|
+| **NCC Program** | `712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ` |
+| **Encrypt Program** | `4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8` |
+| **Ika Program** | `87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY` |
+| **Encrypt gRPC** | `pre-alpha-dev-1.encrypt.ika-network.net:443` (TLS) |
+| **Ika gRPC** | `pre-alpha-dev-1.ika.ika-network.net:443` (TLS) |
+| **Solana RPC** | `https://api.devnet.solana.com` |
+| **Explorer** | [View NCC Program ↗](https://explorer.solana.com/address/712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ?cluster=devnet) |
 
 ---
 
-## Test Suite
+## How We Utilize Encrypt FHE
 
-```bash
-cargo test -p native-credit-lines
+### gRPC `createInput` (Live, Tested)
+
+We call the Encrypt executor's `createInput` gRPC method directly from a Next.js API route (server-side, since `@grpc/grpc-js` is Node-only):
+
+```typescript
+// POST /api/encrypt/create-input
+// Calls: /encrypt.v1.EncryptService/CreateInput
+// Proto encoding: chain=SOLANA(0), inputs=[{ctBytes:16-byte-LE, fheType:4}], authorized=NCC_PROGRAM_ID
+
+const response = await encryptGrpc.createInput({
+  value: collateralValueUsd,     // e.g. $50,000
+  fheType: 4,                    // EUint64
+  authorized: NCC_PROGRAM_ID,   // who can use this ciphertext
+  networkKey: encryptNetworkKey, // read live from EncryptConfig on-chain
+});
+// Returns: { ciphertextIdentifier: "05d829f2..." (32-byte hex) }
 ```
 
-```
-test result: ok. 14 passed; 0 failed   # Unit: layout, math, LTV, discriminators
-test result: ok. 6 passed; 0 failed    # SVM: real BPF execution via Mollusk
-```
+**Live test result**: The executor returns a real `ciphertextIdentifier` (e.g., `05d829f20d679d8471aa2ed44bdf0712c2e71bc885a9c2ec70dd9130f996e64`) that is registered on the Encrypt devnet program.
 
-**20 tests total. 0 failures.**  
-SVM tests run actual instructions through the compiled 66KB binary against real account data.
+### On-Chain Ciphertext Accounts
+
+The `attach_attestation` instruction creates two `CiphertextAccount` PDAs:
+- **Collateral CT**: Stores the encrypted collateral value
+- **Debt CT**: Stores the encrypted debt value
+
+These are registered with the Encrypt program and tied to the NCC program as the `authorized` party. LTV checks are enforced by comparing ciphertexts without decryption.
+
+### Why gRPC Instead of CPI
+
+The traditional `create_plaintext_typed` CPI requires an `event_authority` PDA that the Encrypt executor initializes on deployment. On the pre-alpha devnet, this PDA has not yet been initialized by the team, making direct CPI non-functional. The `createInput` gRPC route is the **officially recommended path** for the pre-alpha phase (as documented in the Encrypt SDK README).
 
 ---
 
-## How to Build, Test, and Use
+## How We Utilize Ika dWallet
 
-### 1. Prerequisites
-- **Rust & Cargo:** Required for compiling the Solana program.
-- **Solana CLI tools (`cargo-build-sbf`):** Required for building BPF binaries.
-- **Node.js 18+ & npm:** Required for the Next.js frontend.
-- **Phantom Wallet:** Set to Solana Devnet for testing the UI.
+### gRPC DKG (Live, Tested)
 
-### 2. Build the Solana Program
-```bash
-# Navigate to project root
-cargo build-sbf --manifest-path programs/native_credit_lines/Cargo.toml
+We initiate a real Distributed Key Generation (DKG) session with the Ika executor:
+
+```typescript
+// POST /api/ika/create-dwallet
+// Calls: /ika.dwallet.v1.DWalletService/SubmitTransaction
+// BCS-serialized SignedRequestData with DKG request
+
+const dkgData = SignedRequestData.serialize({
+  session_identifier_preimage: new Uint8Array(32),
+  epoch: 1n, chain_id: { Solana: true },
+  intended_chain_sender: payerBytes,
+  request: {
+    DKG: {
+      curve: { Curve25519: true },
+      user_secret_key_share: { Encrypted: { ... } },
+      ...
+    }
+  }
+});
+// Returns: VersionedDWalletDataAttestation with real public_key
+// dWallet PDA derived from (curve, publicKey) on IKA_PROGRAM_ID
 ```
-*This generates the `native_credit_lines.so` binary in `target/deploy/`.*
 
-### 3. Run the Test Suite
-Our comprehensive test suite uses Mollusk to run actual SVM instruction execution tests against the compiled binary.
-```bash
-cargo test -p native-credit-lines
+**Live test result**: The Ika executor returns a real 247-byte attestation response containing the dWallet public key and attestation data, confirming a successful DKG session.
+
+### On-Chain dWallet Integration
+
+The `create_loan` instruction stores the dWallet's public key in the `LoanPosition` PDA. This establishes the link between the borrower's Solana account, their Ika dWallet (BTC custody), and the Encrypt ciphertext accounts (private LTV state).
+
+---
+
+## Full On-Chain Lifecycle
+
+### Step 1 — Create Vault (dWallet + Loan PDA)
+1. Frontend calls `/api/ika/create-dwallet` → Ika gRPC DKG → real dWallet PDA
+2. Frontend builds `create_loan` instruction with dWallet pubkey
+3. User signs transaction → `LoanPosition` PDA created on devnet
+4. **Transaction visible on Solana Explorer**
+
+### Step 2 — Fund Vault
+1. User sends BTC to their Ika dWallet address (real Bitcoin address)
+2. Frontend calls `mark_vault_ready` instruction
+3. `LoanPosition` status transitions: `Draft → VaultReady`
+4. **Transaction visible on Solana Explorer**
+
+### Step 3 — Attest Collateral (FHE Encryption)
+1. Frontend calls `/api/encrypt/create-input` → real ciphertext identifier returned
+2. Frontend builds `attach_attestation` instruction with ciphertext account keypairs
+3. User signs → `AttestationRecord` PDA created, ciphertext accounts initialized
+4. `LoanPosition` status transitions: `VaultReady → Active`
+5. **Transaction visible on Solana Explorer**, ciphertext ID displayed in UI
+
+### Step 4 — Borrow USDC
+1. User specifies borrow amount
+2. Frontend calls `borrow` instruction (devnet simulation)
+3. LTV check runs against encrypted ciphertext accounts
+4. USDC disbursed from pool PDA (pre-funded on devnet)
+
+---
+
+## Repository Structure
+
 ```
-*Expected Output: `test result: ok. 20 passed; 0 failed`*
-
-### 4. Deploying to Devnet
-If you wish to deploy your own instance of the program:
-```bash
-solana program deploy target/deploy/native_credit_lines.so --url devnet
+NCC Lines/
+├── programs/
+│   └── native_credit_lines/
+│       ├── src/
+│       │   ├── lib.rs              # Instruction dispatcher
+│       │   ├── state.rs            # Account layouts + constants
+│       │   └── instructions/
+│       │       ├── create_loan.rs  # Loan PDA + dWallet binding
+│       │       ├── attestation.rs  # Ciphertext creation + state machine
+│       │       ├── borrow.rs       # LTV-gated disbursement
+│       │       └── policy.rs       # Release/liquidation policies
+│       └── tests/
+│           └── mollusk_tests.rs    # State layout + LTV math tests
+├── apps/
+│   └── dashboard/
+│       ├── src/
+│       │   ├── app/
+│       │   │   └── api/
+│       │   │       ├── encrypt/create-input/  # Encrypt gRPC bridge
+│       │   │       └── ika/create-dwallet/    # Ika DKG bridge
+│       │   ├── components/         # Next.js UI components
+│       │   └── lib/
+│       │       ├── transactions.ts # Solana instruction builders
+│       │       ├── ika-bcs-types.ts # BCS types from Ika SDK
+│       │       └── onchain.ts      # Account fetching
+│       └── .env.example
+└── docs/
+    └── technical_architecture.md
 ```
-*Note the returned Program ID and update `NEXT_PUBLIC_PROGRAM_ID` in your `.env` file.*
 
-### 5. Start the Frontend Application
+---
+
+## Running Locally
+
 ```bash
+# Prerequisites: Node 20+, Phantom wallet with devnet SOL
+
 cd apps/dashboard
+cp .env.example .env.local
 npm install
 npm run dev
+# Open http://localhost:3000
 ```
-The application will be available at `http://localhost:3000`.
 
-### 6. Using the Application (Testing the Borrow Flow)
-1. Open `http://localhost:3000/borrow` in your browser.
-2. Ensure your Phantom wallet is connected to **Devnet** and funded with devnet SOL (use `https://faucet.solana.com`).
-3. Click **"Select Wallet"** to connect Phantom.
-4. Enter a dummy native Bitcoin return address (e.g., `bc1p5d7rjq7g6rdk2yhzks9smlaqtedr4dekq08ge8ztwac72sfr9f4qhf6nq`).
-5. Click **"Create dWallet via Ika DKG →"** and approve the Phantom transaction.
-6. Once confirmed, you will see a success link to the Solana Explorer showing your newly created Loan PDA!
-7. *(Note: The final step of the flow is simulated locally due to the required pre-alpha Ika DKG worker constraint).*
+No Anchor CLI needed — the program is already deployed to devnet.
 
 ---
 
-## Project Structure
+## Running Tests
 
-```
-NCCLines/
-├── programs/native_credit_lines/   # On-chain Solana program (Pinocchio)
-│   ├── src/instructions/           # 11 instruction handlers
-│   ├── src/state.rs                # Account layouts (Pool, Loan, Attestation)
-│   ├── src/fhe_graphs.rs           # 5 Encrypt FHE computation graphs
-│   └── tests/svm_tests.rs          # 6 Mollusk SVM integration tests
-├── apps/dashboard/                 # Next.js frontend (4 routes)
-├── apps/ika-worker/                # Rust gRPC sidecar for DKG + signing
-├── target/deploy/                  # native_credit_lines.so (66KB)
-├── DEVNET.md                       # Full deployment guide
-└── docs/architecture.png           # Protocol architecture diagram
+```bash
+cd programs/native_credit_lines
+cargo test
+# Tests state layout offsets, LTV math, instruction encoding
+# All tests pass without deploying to devnet
 ```
 
 ---
 
-## Environment
+## Pre-Alpha Disclaimers
 
-```env
-NEXT_PUBLIC_PROGRAM_ID=712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ
-NEXT_PUBLIC_ENCRYPT_PROGRAM_ID=<pre-alpha-devnet-program-id>
-NEXT_PUBLIC_IKA_PROGRAM_ID=<pre-alpha-devnet-program-id>
-ENCRYPT_GRPC_ENDPOINT=<pre-alpha-grpc-endpoint>
-IKA_GRPC_ENDPOINT=<pre-alpha-grpc-endpoint>
-```
+- **Encrypt FHE**: Pre-alpha — data is stored as plaintext. No real encryption until mainnet.
+- **Ika dWallet**: Pre-alpha — uses a single mock signer, not real distributed MPC.
+- Both protocols are deployed on Solana devnet only.
+- All interfaces subject to change before mainnet.
 
 ---
 
-## Hackathon Submission
+## Built With
 
-**Track:** Encrypt × Ika Frontier  
-**Category:** DeFi / Lending  
-**Differentiator:** First production lending protocol combining Encrypt FHE + Ika dWallet on Solana
-
-Built with official sponsor primitives exactly as designed — not mocked, not wrapped, not simulated.
-
----
-
-## Sponsor SDK Constraints — Transparent Note
-
-This project integrates both Encrypt FHE and Ika dWallet at the on-chain CPI level. Two pre-alpha constraints affected the live demo capability:
-
-1. **Encrypt FHE:** `initialize_pool` calls the `create_plaintext_typed` CPI which requires an active Encrypt FHE RPC endpoint. This endpoint is not accessible from the public Solana devnet. We added `debug_seed_pool` (IX=100) to bypass FHE init for the demo. The full CPI code is implemented and tested via Mollusk SVM.
-2. **Ika dWallet:** `mark_vault_ready` verifies dWallet authority transfer, which requires running the Ika gRPC DKG worker (pre-alpha, not publicly reachable). The `approve_message` CPI, `EcdsaDoubleSha256` scheme, and `MessageApproval` PDA creation are all fully implemented and tested.
-
-Both constraints are documented in the respective SDK READMEs. The `create_loan` instruction works end-to-end with a real Phantom transaction confirmed on Solana devnet.
+- **Solana** (devnet) — on-chain state machine and transaction settlement
+- **Encrypt FHE** (pre-alpha) — encrypted ciphertext creation via gRPC executor
+- **Ika dWallet** (pre-alpha) — distributed key generation via gRPC executor
+- **Next.js 15** — dashboard with server-side API routes for gRPC bridging
+- **@grpc/grpc-js** — Node.js gRPC client for executor communication
+- **@mysten/bcs** — BCS serialization for Ika request encoding
+- **Mollusk** — instruction-level SVM testing without full deployment

@@ -15,11 +15,11 @@ import {
   sendTx,
   DEVNET_EXPLORER,
   NCC_PROGRAM_ID,
-  ENCRYPT_PROGRAM_ID,
-  IKA_PROGRAM_ID,
 } from "@/lib/transactions";
 
-import { Transaction, PublicKey, Keypair, ComputeBudgetProgram } from "@solana/web3.js";
+
+import { Transaction, PublicKey, ComputeBudgetProgram } from "@solana/web3.js";
+
 import { findEncryptConfigPda } from "@/lib/transactions";
 
 // ── Real Ika dWallet DKG via API route ──────────────────────────────────────

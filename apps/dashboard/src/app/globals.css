@@ -424,6 +424,8 @@ code, pre {
 .dot-amber  { background: var(--amber);  box-shadow: 0 0 0 2px var(--amber-glow); animation: pulse 2.5s ease infinite; }
 .dot-red    { background: var(--red);    box-shadow: 0 0 0 2px var(--red-glow); }
 .dot-cyan   { background: var(--cyan);   box-shadow: 0 0 0 2px var(--cyan-glow);   animation: pulse 2.5s ease infinite; }
+.dot-violet { background: var(--violet); box-shadow: 0 0 0 2px var(--violet-glow); animation: pulse 2.5s ease infinite; }
+.dot-gray   { background: #6b7280;       box-shadow: 0 0 0 2px rgba(107,114,128,0.2); }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; transform: scale(1); }

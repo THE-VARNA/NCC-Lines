@@ -1,13 +1,38 @@
-// Mollusk integration tests for Native Collateral Credit Lines.
+// Mollusk unit tests for NCC Lines — Native Collateral Credit Lines.
 //
-// Tests instruction-level logic in isolation using pre-built account data.
-// Encrypt/Ika CPIs are not invoked — we test the program's own state transitions.
+// ── What These Tests Cover ──────────────────────────────────────────────────
 //
-// Key offsets from Encrypt SDK source (encrypt-types accounts.rs):
+// 1. Account layout correctness — verifies byte offsets match state.rs constants.
+//    Critical because the frontend reads account data at these exact offsets.
+//
+// 2. Instruction encoding — verifies ix_data layouts match what the program reads.
+//
+// 3. LTV arithmetic — validates borrow/liquidation math without FHE (same logic
+//    that runs inside Encrypt FHE graphs at mainnet).
+//
+// ── Integration NOT Tested Here ─────────────────────────────────────────────
+//
+// • Encrypt gRPC `createInput`: tested live at pre-alpha-dev-1.encrypt.ika-network.net:443
+//   Returns real ciphertextIdentifier (e.g. 05d829f2...) — confirmed working.
+//
+// • Ika DKG gRPC: tested live at pre-alpha-dev-1.ika.ika-network.net:443
+//   Returns 247-byte attestation with real Curve25519 public key — confirmed working.
+//
+// • On-chain CPI: attach_attestation bypasses FHE CPI via structural guard because
+//   the Encrypt executor has not yet initialized event_authority PDA on public devnet.
+//   Full CPI will re-engage when the team initializes the PDA.
+//
+// ── Live Devnet Addresses ────────────────────────────────────────────────────
+//
+//   NCC Program:     712fUCmQKHViAsnUCjtB6WT1BQuVzFD6iQn97LjboDeQ
+//   Encrypt Program: 4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8
+//   Ika Program:     87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY
+//
+// ── Key Offsets from Encrypt SDK (encrypt-types/accounts.rs) ────────────────
 //   CT_LEN = 100 (disc(1)+ver(1)+digest(32)+authorized(32)+nek(32)+fhe_type(1)+status(1))
 //   DR_HEADER_END = 107 (disc(2)+cipher(32)+digest(32)+requester(32)+fhe_type(1)+total(4)+written(4))
 //
-// Key offsets from our state.rs (all verified at compile time via constants):
+// ── Key Offsets from our state.rs (compile-time verified) ───────────────────
 //   DISC_POOL=1, DISC_LOAN_POSITION=2, DISC_COLLATERAL_ATTESTATION=3, DISC_POLICY_REVEAL=4
 
 use mollusk_svm::Mollusk;
@@ -32,6 +57,8 @@ const FHE_TYPE_EUINT64: u8 = 4;
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+// Reserved for full SVM integration tests (future work when executor initializes event_authority PDA)
+#[allow(dead_code)]
 fn funded_account() -> Account {
     Account {
         lamports: 10_000_000_000,
@@ -42,6 +69,7 @@ fn funded_account() -> Account {
     }
 }
 
+#[allow(dead_code)]
 fn program_account(owner: &Pubkey, data: Vec<u8>) -> Account {
     let lamports = minimum_balance(data.len());
     Account {
@@ -182,6 +210,7 @@ fn build_policy_reveal(
 
 // ── Test Setup ─────────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 fn setup_mollusk() -> (Mollusk, Pubkey) {
     let program_id = Pubkey::new_from_array([42u8; 32]);
     // In the actual test run, point to the compiled .so:

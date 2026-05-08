@@ -1,101 +1,217 @@
-# Technical Architecture
-## Native Collateral Credit Lines (NCC)
+# Technical Architecture — NCC Lines
 
-This document provides a deep dive into the technical design, state architecture, and cross-chain execution flow of the Native Collateral Credit Lines protocol.
+## System Overview
 
----
+NCC Lines is a confidential Bitcoin credit line protocol on Solana, integrating two pre-alpha sponsor protocols: **Encrypt FHE** and **Ika dWallet**. The architecture has three distinct layers:
 
-## 1. System Overview
-
-NCC operates across three distinct networks to provide a trustless, confidential lending experience:
-
-1. **Solana (Execution Layer):** Hosts the core BPF program (written using the lightweight Pinocchio framework). It manages the state machine, user interactions, and USDC liquidity.
-2. **Ika dWallet Network (Custody Layer):** Provides an MPC (Multi-Party Computation) decentralized network that generates native Bitcoin Taproot addresses and signs Bitcoin transactions only when authorized by the Solana program.
-3. **Encrypt FHE (Privacy Layer):** Provides Fully Homomorphic Encryption. It stores financial values as ciphertexts and computes mathematical graphs (like Loan-to-Value checks) directly on encrypted data without ever decrypting the underlying amounts.
-
----
-
-## 2. On-Chain State Architecture
-
-The Solana program stores state in derived PDAs (Program Derived Addresses). The architecture relies heavily on precise byte layouts to remain highly optimized (66KB binary size).
-
-### Pool Account
-A global singleton account for a specific asset pair (e.g., BTC/USDC).
-- **Discriminator:** `1`
-- **Admin Pubkey:** Controls pausing/upgrading.
-- **Encrypt FHE Pubkeys:** Stores the `domain_public_key` and `server_public_key` required for FHE operations.
-- **Loan Count:** An auto-incrementing `u32` used to derive unique Loan PDAs.
-
-### Loan Account (317 Bytes)
-The core position account for a user. It binds the borrower, the Ika dWallet, and the Encrypt FHE ciphertexts together.
-- **Discriminator:** `2`
-- **Borrower Pubkey (32 bytes):** The owner of the loan.
-- **dWallet Pubkey (32 bytes):** The reference to the Ika MPC wallet holding the native BTC.
-- **Status (1 byte):** A state machine enum (`Draft` → `VaultReady` → `Active` → `ReleasePending` etc.).
-- **Encrypted Collateral Value (128 bytes):** The USD value of the deposited BTC, encrypted as an Encrypt `EncryptedUint64`.
-- **Encrypted Debt Value (128 bytes):** The outstanding USDC loan amount, encrypted as an `EncryptedUint64`.
-
----
-
-## 3. The Ika dWallet Integration (Custody)
-
-We utilize Ika to achieve **native Bitcoin custody** without wrapping or bridging.
-
-1. **DKG (Distributed Key Generation):** The user requests an Ika worker to generate a dWallet. This outputs a native Bitcoin Taproot address and an Ika dWallet account on Solana.
-2. **Authority Transfer:** The dWallet's signing authority is transferred to our Solana program's PDA (`Ika CPI Authority`). This ensures the user cannot withdraw the BTC while they have an active loan.
-3. **CPI Signature Execution:** When a user repays their loan, our program calls the Ika `approve_message` CPI.
-   - It passes the `EcdsaDoubleSha256` signature scheme.
-   - It passes the raw Bitcoin transaction hash that sends the BTC back to the user.
-   - The Ika network validators verify the CPI, sign the hash via MPC, and broadcast it to the Bitcoin network.
-
----
-
-## 4. The Encrypt FHE Integration (Privacy)
-
-We utilize Encrypt FHE to guarantee that **debt balances and liquidation thresholds are never public**.
-
-### The Homomorphic LTV Engine
-When an oracle updates the price of BTC, we must evaluate if a user is liquidatable. However, we cannot decrypt their collateral or debt to check. Instead, we use an FHE graph.
-
-**The Graph Logic:**
-```text
-Condition to Liquidate: (Debt * 10,000) >= (Collateral * 7,500)
 ```
-1. The graph multiplies the encrypted Debt by `10,000`.
-2. The graph multiplies the encrypted Collateral by `7,500` (the 75% Max LTV parameter).
-3. The graph performs an encrypted Greater-Than-Or-Equal (`GTE`) comparison.
-
-**The Output:**
-The result of this graph is a single encrypted bit (`1` if liquidatable, `0` if safe). The protocol requests a decryption of *only* this single bit. The actual dollar amounts remain mathematically secure ciphertexts.
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 3: USER INTERFACE                                        │
+│  Next.js Dashboard · Phantom Wallet · Framer Motion UI          │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ user clicks "Attest"
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 2: GRPC BRIDGES (Next.js API Routes — Server-Side)       │
+│                                                                  │
+│  /api/encrypt/create-input  →  Encrypt gRPC executor            │
+│    POST { value, fheType=4(EUint64), authorized, networkKey }   │
+│    Returns: { ciphertextIdentifier: "05d829f2..." }             │
+│                                                                  │
+│  /api/ika/create-dwallet    →  Ika gRPC executor                │
+│    POST { payerPubkey }                                          │
+│    BCS: SignedRequestData { DKG { curve: Curve25519, ... } }    │
+│    Returns: { dwalletPda: "...", publicKey: "hex" }             │
+└────────────────────────┬────────────────────────────────────────┘
+                         │ transactions signed by user
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  LAYER 1: SOLANA DEVNET                                          │
+│                                                                  │
+│  NCC Program (712fUCmQ...)                                       │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Pool PDA              │  LoanPosition PDA              │    │
+│  │  • admin               │  • borrower                    │    │
+│  │  • loan_count          │  • dwallet_pda                 │    │
+│  │  • paused flag         │  • collateral_value_ct         │    │
+│  │                        │  • debt_ct                     │    │
+│  │                        │  • status (state machine)      │    │
+│  ├─────────────────────────────────────────────────────────┤    │
+│  │  AttestationRecord PDA                                  │    │
+│  │  • ciphertext accounts initialized                      │    │
+│  │  • bound to loan PDA                                    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  Encrypt Program (4ebfzWdK...)                                   │
+│  ┌───────────────────────────────────┐                          │
+│  │  CiphertextAccount               │                          │
+│  │  • disc=1, version=1             │                          │
+│  │  • ciphertext_digest [32]        │                          │
+│  │  • authorized = NCC_PROGRAM_ID   │                          │
+│  │  • fhe_type = 4 (EUint64)        │                          │
+│  │  • status = verified             │                          │
+│  └───────────────────────────────────┘                          │
+│                                                                  │
+│  Ika Program (87W54kGY...)                                       │
+│  ┌───────────────────────────────────┐                          │
+│  │  dWallet PDA                     │                          │
+│  │  • curve = Curve25519            │                          │
+│  │  • public_key [32]               │                          │
+│  │  • attested by Ika network       │                          │
+│  └───────────────────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 5. Instruction Lifecycle
+## Encrypt FHE Integration
 
-The protocol enforces a strict state machine across 11 instructions:
+### Protocol Choice: gRPC `createInput` over on-chain CPI
 
-### Setup Phase
-1. **`initialize_pool`**: Creates the Pool PDA and calls the Encrypt FHE CPI to generate the initial encrypted zero-state ciphertexts.
-2. **`create_loan`**: Derives a new Loan PDA for the borrower.
-3. **`mark_vault_ready`**: Verifies the Ika dWallet authority has been transferred to the protocol.
-4. **`attach_attestation`**: Saves the initial FHE ciphertexts (Collateral = X, Debt = 0) into the Loan PDA.
+The Encrypt pre-alpha SDK provides two paths for creating ciphertext inputs:
+1. **`create_plaintext_typed` CPI** — requires an initialized `event_authority` PDA on-chain (deployed by executor team, not yet available on public devnet)
+2. **`createInput` gRPC** — executor-driven, no `event_authority` PDA required
 
-### Active Phase
-5. **`borrow`**: The borrower requests USDC. The protocol transfers USDC from the vault and executes an FHE Addition graph to increase the encrypted debt ciphertext.
-6. **`repay`**: The borrower sends USDC back. The protocol executes an FHE Subtraction graph to decrease the encrypted debt ciphertext.
+We use path 2. The gRPC endpoint (`/encrypt.v1.EncryptService/CreateInput`) accepts:
 
-### Resolution Phase (Release)
-7. **`request_release_policy`**: To withdraw BTC, the protocol runs an FHE graph checking if `Encrypted Debt == 0`.
-8. **`finalize_release`**: If the decrypted result is `1` (true), the protocol executes the Ika `approve_message` CPI, releasing the native BTC back to the user on the Bitcoin network.
+```protobuf
+message CreateInputRequest {
+  Chain chain = 1;                    // SOLANA = 0
+  repeated EncryptedInput inputs = 2; // [{ctBytes: 16-byte-LE, fheType: 4}]
+  bytes proof = 3;                    // empty in dev mode
+  bytes authorized = 4;              // NCC program pubkey (32 bytes)
+  bytes network_encryption_public_key = 5; // from EncryptConfig on-chain
+}
+```
 
-### Resolution Phase (Liquidation)
-9. **`request_liquidation_policy`**: A liquidator triggers the FHE LTV graph (as explained in Section 4).
-10. **`finalize_liquidation`**: If the decrypted result is `1` (liquidatable), the protocol executes the Ika `approve_message` CPI, sending the native BTC to the liquidator on the Bitcoin network.
+The 16-byte ciphertext bytes are little-endian encoded. In pre-alpha, these are stored as plaintext. Real homomorphic encryption applies at mainnet.
+
+### FHE Type Usage
+
+We use `fhe_type = 4` which corresponds to `EUint64` — a 64-bit unsigned integer. This is appropriate for dollar amounts in cents (up to ~$1.8 × 10¹⁰, well above any realistic collateral).
+
+### CiphertextAccount Layout (Encrypt SDK)
+
+```
+Offset   Field                 Size
+0        discriminator (1)      1
+1        version (1)            1
+2..34    ciphertext_digest     32
+34..66   authorized            32  ← NCC_PROGRAM_ID
+66..98   network_enc_key       32
+98       fhe_type               1  ← 4 (EUint64)
+99       status                 1  ← 1 (verified)
+Total:                        100
+```
 
 ---
 
-## 6. Security Considerations
+## Ika dWallet Integration
 
-- **No Plaintext Leaks:** Because calculations occur homomorphically, MEV bots cannot front-run liquidations based on visible debt cliffs.
-- **Non-Custodial Design:** The Solana program is the sole authority over the Ika dWallets. No central admin or multi-sig can steal the underlying Bitcoin.
-- **Idempotent Decryptions:** Decryption requests are asynchronous. The state machine prevents a loan from mutating while an FHE decryption or Ika signature is in flight.
+### DKG Flow
+
+The Distributed Key Generation creates an MPC keypair where:
+- User holds an encrypted secret share
+- Ika network holds complementary shares
+- Neither party can unilaterally sign — 2PC-MPC required
+
+```typescript
+// BCS-serialized request to /ika.dwallet.v1.DWalletService/SubmitTransaction
+SignedRequestData {
+  session_identifier_preimage: [0u8; 32],  // unique per session
+  epoch: 1,
+  chain_id: Solana,
+  intended_chain_sender: payerPublicKey,
+  request: DKG {
+    curve: Curve25519,
+    user_secret_key_share: Encrypted {
+      encrypted_centralized_secret_share_and_proof: [...],
+      signer_public_key: payerPublicKey,
+    }
+  }
+}
+```
+
+Response: `VersionedDWalletDataAttestation::V1` containing:
+- `public_key` [32 bytes] — the dWallet's Curve25519 public key
+- `public_output` [32 bytes] — DKG proof
+- `attestation_data` + `network_signature` — Ika network attestation
+
+### dWallet PDA Derivation
+
+```
+seeds = ["dwallet", curve_byte || public_key]
+program = IKA_PROGRAM_ID (87W54kGY...)
+```
+
+This PDA is the on-chain address that controls the Bitcoin vault.
+
+---
+
+## State Machine
+
+```
+                 create_loan()
+                      │
+                      ▼
+               ┌─────────────┐
+               │    Draft    │
+               └──────┬──────┘
+          mark_vault_ready()
+                      │
+                      ▼
+               ┌─────────────┐
+               │ VaultReady  │
+               └──────┬──────┘
+         attach_attestation()
+                      │
+                      ▼
+               ┌─────────────┐
+               │   Active    │◄────────────────────────────┐
+               └──────┬──────┘                             │
+                      │                                    │
+         ┌────────────┴─────────────┐                     │
+         ▼                          ▼                     │
+  initiate_release()         initiate_liquidation()       │
+         │                          │                     │
+         ▼                          ▼                     │
+  ┌─────────────────┐   ┌─────────────────────────┐      │
+  │ ReleaseCheck    │   │  LiquidationCheck       │      │
+  │ Pending         │   │  Pending                │      │
+  └────────┬────────┘   └───────────┬─────────────┘      │
+           │                        │                     │
+   (Encrypt decrypt)        (Encrypt decrypt)             │
+           │                        │                     │
+           ▼                        ▼                     │
+  ┌─────────────────┐   ┌─────────────────────────┐      │
+  │ ReleasePending  │   │  LiquidationPending     │      │
+  │ Signature       │   │  Signature              │      │
+  └────────┬────────┘   └───────────┬─────────────┘      │
+           │                        │                     │
+    (Ika sign)                (Ika sign)                  │
+           │                        │                     │
+           ▼                        ▼                     │
+    ┌──────────┐            ┌────────────┐                │
+    │ Released │            │ Liquidated │                │
+    └──────────┘            └────────────┘                │
+```
+
+---
+
+## Security Model
+
+| Threat | Mitigation |
+|--------|-----------|
+| Front-running liquidations | Debt and collateral values are ciphertexts — bots can't see LTV |
+| Unauthorized BTC withdrawal | Requires Ika 2PC-MPC signature — neither party has full key |
+| Bridge risk | No wrapping — BTC is native at Ika dWallet address |
+| Admin rug | Pool admin only sets parameters; can't touch user collateral |
+
+---
+
+## Known Pre-Alpha Limitations
+
+1. **No real FHE**: Encrypt stores data as plaintext in pre-alpha. Homomorphic computation at mainnet.
+2. **Mock MPC**: Ika uses a single signer in pre-alpha. Distributed MPC at mainnet.
+3. **event_authority PDA**: Direct Encrypt CPI bypassed via gRPC — will be re-enabled when executor initializes PDA on devnet.
+4. **USDC disbursement**: Step 4 uses a pre-funded pool; production uses liquidity provider deposits.
