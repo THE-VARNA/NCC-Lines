@@ -29,8 +29,8 @@ const PILLARS = [
   },
   {
     icon: "⚡",
-    label: "Instant USDC Credit",
-    sub: "Sub-second settlement",
+    label: "Liquid on Solana",
+    sub: "Receive native USDC directly",
     color: "var(--violet)",
     glow: "rgba(168,85,247,0.08)",
     border: "rgba(168,85,247,0.2)",
@@ -149,11 +149,11 @@ export function HeroSection() {
               lineHeight: 1.75,
             }}
           >
-            Borrow USDC against Bitcoin with{" "}
+            Borrow Solana USDC against Bitcoin with{" "}
             <span style={{ color: "var(--cyan)", fontWeight: 600 }}>FHE-encrypted LTV checks</span>
-            {" "}— debt stays private. Collateral secured by{" "}
+            {" "}— keeping your debt position entirely private. Your collateral remains on the Bitcoin network, secured by an{" "}
             <span style={{ color: "var(--violet)", fontWeight: 600 }}>Ika dWallet MPC</span>
-            {" "}— no bridges, no custodians.
+            {" "}— no bridges, no wrapped tokens.
           </motion.p>
         </motion.div>
 
