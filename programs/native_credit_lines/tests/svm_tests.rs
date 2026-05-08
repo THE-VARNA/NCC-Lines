@@ -397,6 +397,10 @@ fn test_svm_mark_vault_ready_wrong_borrower_rejected() {
 }
 
 #[test]
+// [PRE-ALPHA BYPASS] The dWallet authority check is intentionally disabled in vault.rs
+// because the Ika executor pre-alpha does not yet populate real account data at offset 3.
+// This test documents the expected behaviour once the check is re-enabled at mainnet.
+#[ignore = "dWallet authority check bypassed in pre-alpha; re-enable when Ika executor sets real authority field"]
 fn test_svm_mark_vault_ready_wrong_authority_rejected() {
     let program_id    = Pubkey::new_unique();
     let mollusk       = Mollusk::new(&program_id, PROGRAM_PATH);

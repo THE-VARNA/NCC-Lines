@@ -109,7 +109,7 @@ export function BorrowPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Input states
-  const [btcAmountStr, setBtcAmountStr] = useState("0.5");
+  const [btcAmountStr, setBtcAmountStr] = useState("");
   const btcAmount = parseFloat(btcAmountStr) || 0;
   const collateralValueUsd = Math.floor(btcAmount * btcPrice);
   const ltvLimitUsd = collateralValueUsd * 0.6; // 60%
@@ -316,6 +316,7 @@ export function BorrowPage() {
                       value={btcAmountStr}
                       onChange={e => setBtcAmountStr(e.target.value)}
                       className="input"
+                      placeholder="0.00"
                       style={{ fontSize: "1.25rem", fontWeight: 600, paddingRight: "4rem" }}
                       min="0.1" step="0.1"
                     />

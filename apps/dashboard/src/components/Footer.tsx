@@ -96,12 +96,12 @@ export function Footer() {
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {[
-                { label: "Architecture Diagram", href: "#" },
-                { label: "README", href: "https://github.com" },
-                { label: "DEVNET.md", href: "https://github.com" },
-                { label: "Test Suite (20 tests)", href: "https://github.com" },
+                { label: "README", href: "https://github.com/THE-VARNA/NCC-Lines#readme" },
+                { label: "Architecture", href: "https://github.com/THE-VARNA/NCC-Lines/blob/main/docs/technical_architecture.md" },
+                { label: "Encrypt FHE Docs", href: "https://github.com/dwallet-labs/encrypt-pre-alpha" },
+                { label: "Ika dWallet Docs", href: "https://github.com/dwallet-labs/ika-pre-alpha" },
               ].map(({ label, href }) => (
-                <a key={label} href={href}
+                <a key={label} href={href} target="_blank" rel="noreferrer"
                   style={{ fontSize: "0.8125rem", color: "var(--text-2)", textDecoration: "none", transition: "color var(--t-sm)" }}
                   onMouseEnter={e => (e.currentTarget.style.color = "var(--text-0)")}
                   onMouseLeave={e => (e.currentTarget.style.color = "var(--text-2)")}
@@ -121,7 +121,7 @@ export function Footer() {
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span className="dot dot-green" />
             <span style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>
-              20 tests passing · 66KB BPF · Pre-alpha devnet
+              19 tests passing · 66KB BPF · Pre-alpha devnet
             </span>
           </div>
         </div>

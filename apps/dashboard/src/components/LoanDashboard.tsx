@@ -131,7 +131,7 @@ export function LoanDashboard() {
       setLoading(true);
       try {
         const fetched = await fetchLoansByBorrower(connection, publicKey);
-        if (!cancelled) setLoans(fetched);
+        if (!cancelled) setLoans(fetched.sort((a, b) => b.loanIndex - a.loanIndex));
       } catch {
         if (!cancelled) setLoans([]);
       }
