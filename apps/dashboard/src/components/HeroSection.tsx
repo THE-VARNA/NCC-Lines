@@ -3,6 +3,10 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { fetchPoolState } from "@/lib/onchain";
+import { ENCRYPT_PROGRAM_ID, IKA_DWALLET_PROGRAM_ID } from "@/lib/constants";
 
 const TRUST_ITEMS = [
   {
@@ -33,6 +37,18 @@ const TRUST_ITEMS = [
 
 export function HeroSection() {
   const { connected } = useWallet();
+  const [poolStatus, setPoolStatus] = useState<"checking" | "live" | "offline">("checking");
+
+  useEffect(() => {
+    // Only connection isn't passed here, we'll just check if it returns
+    // Since fetchPoolState requires connection, we can instantiate a quick one or just rely on the fallback
+    import("@solana/web3.js").then(({ Connection, clusterApiUrl }) => {
+      const conn = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC ?? clusterApiUrl("devnet"));
+      fetchPoolState(conn)
+        .then(p => setPoolStatus(p.exists ? "live" : "offline"))
+        .catch(() => setPoolStatus("offline"));
+    });
+  }, []);
 
   return (
     <section className="z-base" style={{
@@ -132,56 +148,58 @@ export function HeroSection() {
         </div>
 
         {/* Trust card grid */}
-        <div className="animate-in delay-3 grid-3" style={{ width: "100%", maxWidth: 700 }}>
-          {TRUST_ITEMS.map(({ icon, label, sub, color, glow, border }) => (
-            <div key={label} style={{
-              background: glow,
-              border: `1px solid ${border}`,
-              borderRadius: "var(--r-lg)",
-              padding: "1.25rem 1rem",
-              textAlign: "center",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem",
-              backdropFilter: "blur(12px)",
-              transition: "transform var(--t-spring), box-shadow var(--t-md)",
-            }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)";
-                (e.currentTarget as HTMLElement).style.boxShadow = `0 8px 32px ${glow}`;
+        <div className="grid-3" style={{ width: "100%", maxWidth: 700 }}>
+          {TRUST_ITEMS.map(({ icon, label, sub, color, glow, border }, i) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
+              style={{
+                background: glow,
+                border: `1px solid ${border}`,
+                borderRadius: "var(--r-lg)",
+                padding: "1.25rem 1rem",
+                textAlign: "center",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem",
+                backdropFilter: "blur(12px)",
               }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLElement).style.transform = "";
-                (e.currentTarget as HTMLElement).style.boxShadow = "";
-              }}
+              whileHover={{ y: -3, boxShadow: `0 8px 32px ${glow}` }}
             >
               <span style={{ fontSize: "1.625rem" }}>{icon}</span>
               <span style={{ fontWeight: 700, fontSize: "0.8125rem", color: color }}>{label}</span>
               <span style={{ fontSize: "0.6875rem", color: "var(--text-2)", lineHeight: 1.4 }}>{sub}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Network status strip */}
-        <div className="animate-in delay-4" style={{
-          display: "flex", alignItems: "center", gap: "0.75rem",
-          flexWrap: "wrap", justifyContent: "center",
-          padding: "0.5rem 1.25rem",
-          background: "var(--surface-1)",
-          border: "1px solid var(--border-1)",
-          borderRadius: "var(--r-full)",
-          fontSize: "0.6875rem",
-          color: "var(--text-2)",
-        }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          style={{
+            display: "flex", alignItems: "center", gap: "0.75rem",
+            flexWrap: "wrap", justifyContent: "center",
+            padding: "0.5rem 1.25rem",
+            background: "var(--surface-1)",
+            border: "1px solid var(--border-1)",
+            borderRadius: "var(--r-full)",
+            fontSize: "0.6875rem",
+            color: "var(--text-2)",
+          }}
+        >
           <span style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-            <span className="dot dot-green" />
-            Devnet Live
+            <span className={`dot ${poolStatus === 'live' ? 'dot-green' : poolStatus === 'checking' ? 'dot-cyan' : 'dot-red'}`} />
+            Pool {poolStatus === 'live' ? 'Live' : poolStatus === 'checking' ? 'Checking...' : 'Offline'}
           </span>
           <span style={{ color: "var(--border-2)" }}>·</span>
-          <span>Encrypt <code style={{ color: "var(--cyan)", fontSize: "0.65rem" }}>4ebfzWd...</code></span>
+          <span>Encrypt <code style={{ color: "var(--cyan)", fontSize: "0.65rem" }}>{ENCRYPT_PROGRAM_ID.slice(0, 7)}...</code></span>
           <span style={{ color: "var(--border-2)" }}>·</span>
-          <span>Ika <code style={{ color: "var(--violet)", fontSize: "0.65rem" }}>87W54kG...</code></span>
+          <span>Ika <code style={{ color: "var(--violet)", fontSize: "0.65rem" }}>{IKA_DWALLET_PROGRAM_ID.slice(0, 7)}...</code></span>
           <span style={{ color: "var(--border-2)" }}>·</span>
           <span style={{ color: "var(--green)", fontWeight: 600 }}>Pre-Alpha</span>
-        </div>
+        </motion.div>
 
       </div>
     </section>

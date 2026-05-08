@@ -1,256 +1,140 @@
 "use client";
 
-import { usdCentsToDisplay, ltvPercent } from "@/lib/constants";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ClientWalletButton } from "@/components/ClientWalletButton";
-import Link from "next/link";
-import { useState } from "react";
-
-interface LoanPosition {
-  id: string;
-  statusLabel: string;
-  collateralBtc: number;
-  collateralUsd: bigint;
-  debtUsd: bigint;
-  creditLimit: bigint;
-  ltvLimit: number;
-}
-
-const DEMO_LOANS: LoanPosition[] = [
-  {
-    id: "Loan7xKm...mPQ3",
-    statusLabel: "Active",
-    collateralBtc: 0.5,
-    collateralUsd: 5_000_000n,
-    debtUsd:       2_000_000n,
-    creditLimit:   3_000_000n,
-    ltvLimit:      75,
-  },
-];
-
-function LtvBar({ ltv, limit }: { ltv: number; limit: number }) {
-  const pct = Math.min((ltv / limit) * 100, 100);
-  const isWarn   = ltv >= limit * 0.75 && ltv < limit;
-  const isDanger = ltv >= limit;
-  const color = isDanger ? "var(--red)" : isWarn ? "var(--amber)" : "var(--cyan)";
-  const fillClass = isDanger ? "danger" : isWarn ? "warn" : "";
-
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem", alignItems: "center" }}>
-        <span style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--text-3)" }}>
-          Loan-to-Value
-        </span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 700, color }}>
-          {ltv}%{" "}
-          <span style={{ color: "var(--text-3)", fontWeight: 400 }}>/ {limit}%</span>
-        </span>
-      </div>
-      <div className="progress">
-        <div className={`progress-fill ${fillClass}`} style={{ width: `${pct}%` }} />
-      </div>
-      {isWarn && (
-        <p style={{ marginTop: "0.375rem", fontSize: "0.6875rem", color: "var(--amber)", fontWeight: 500 }}>
-          ⚠ Approaching liquidation threshold
-        </p>
-      )}
-    </div>
-  );
-}
-
-function BorrowModal({ loan, onClose }: { loan: LoanPosition; onClose: () => void }) {
-  const available = loan.creditLimit > loan.debtUsd ? loan.creditLimit - loan.debtUsd : 0n;
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 100,
-      background: "rgba(2,6,15,0.85)",
-      backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "1rem",
-    }} onClick={onClose}>
-      <div className="card" style={{
-        maxWidth: 460, width: "100%",
-        padding: "2rem",
-        border: "1px solid var(--border-cyan)",
-        boxShadow: "var(--shadow-cyan), var(--shadow-lg)",
-      }} onClick={e => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <h3>Borrow USDC</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-2)", cursor: "pointer", fontSize: "1.25rem", padding: "0.25rem" }}>✕</button>
-        </div>
-        <p style={{ marginBottom: "1.25rem", fontSize: "0.875rem" }}>
-          Available credit: <span style={{ color: "var(--cyan)", fontWeight: 700, fontFamily: "var(--font-mono)" }}>{usdCentsToDisplay(available)}</span>
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <input className="input" placeholder="Amount (USDC)" type="number" />
-          <div className="divider" />
-          <div style={{ display: "flex", gap: "0.75rem" }}>
-            <button className="btn btn-primary" style={{ flex: 1 }}>Confirm Borrow →</button>
-            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LoanCard({ loan, demo }: { loan: LoanPosition; demo?: boolean }) {
-  const ltv = ltvPercent(loan.debtUsd, loan.collateralUsd);
-  const available = loan.creditLimit > loan.debtUsd ? loan.creditLimit - loan.debtUsd : 0n;
-  const [showBorrow, setShowBorrow] = useState(false);
-
-  return (
-    <>
-      <div className="card" style={{
-        padding: "clamp(1.5rem, 3vw, 2rem)",
-        position: "relative", overflow: "hidden",
-        border: "1px solid var(--border-1)",
-      }}>
-        {/* Glow accent top */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 2,
-          background: "linear-gradient(90deg, var(--cyan), var(--violet))",
-        }} />
-
-        {/* DEMO badge */}
-        {demo && (
-          <div style={{
-            position: "absolute", top: 12, right: 12,
-            background: "var(--amber-glow)",
-            color: "var(--amber-light)",
-            fontSize: "0.5625rem", fontWeight: 800,
-            letterSpacing: "0.12em", textTransform: "uppercase",
-            padding: "0.2rem 0.625rem",
-            borderRadius: "var(--r-full)",
-            border: "1px solid rgba(245,158,11,0.25)",
-          }}>DEMO</div>
-        )}
-
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem", gap: "1rem" }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.375rem" }}>
-              <span className="dot dot-green" />
-              <span style={{ fontWeight: 700, fontSize: "1.0625rem" }}>BTC Credit Line</span>
-              <span className="badge badge-cyan" style={{ fontSize: "0.625rem" }}>{loan.statusLabel}</span>
-            </div>
-            <code style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>{loan.id}</code>
-          </div>
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{
-              fontSize: "clamp(1.25rem, 3vw, 1.75rem)", fontWeight: 800,
-              fontFamily: "var(--font-mono)",
-              color: "var(--amber-light)",
-              letterSpacing: "-0.03em",
-            }}>{loan.collateralBtc} BTC</div>
-            <div className="metric-label">Collateral</div>
-          </div>
-        </div>
-
-        {/* Metrics */}
-        <div className="grid-4" style={{ marginBottom: "1.5rem", gap: "0.625rem" }}>
-          {[
-            { label: "Collateral Value", val: usdCentsToDisplay(loan.collateralUsd), color: "var(--text-0)" },
-            { label: "Outstanding Debt",  val: usdCentsToDisplay(loan.debtUsd),       color: "var(--text-0)" },
-            { label: "Available Credit",  val: usdCentsToDisplay(available),           color: "var(--cyan)" },
-            { label: "Credit Limit",      val: usdCentsToDisplay(loan.creditLimit),    color: "var(--text-1)" },
-          ].map(({ label, val, color }) => (
-            <div key={label} className="card-flat" style={{ padding: "0.875rem 0.75rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-              <span className="metric-label">{label}</span>
-              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: "0.9375rem", color }}>{val}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* LTV */}
-        <LtvBar ltv={ltv} limit={loan.ltvLimit} />
-
-        <div className="divider" style={{ margin: "1.25rem 0" }} />
-
-        {/* Actions */}
-        <div style={{ display: "flex", gap: "0.625rem", flexWrap: "wrap" }}>
-          <button id={`btn-borrow-${loan.id}`}
-            className="btn btn-primary btn-sm"
-            onClick={() => !demo && setShowBorrow(true)}
-            disabled={!!demo}>
-            Borrow USDC
-          </button>
-          <button id={`btn-repay-${loan.id}`}
-            className="btn btn-secondary btn-sm"
-            disabled={!!demo}>
-            Repay
-          </button>
-          <button id={`btn-release-${loan.id}`}
-            className="btn btn-ghost btn-sm"
-            style={{ marginLeft: "auto", color: "var(--text-2)", fontSize: "0.8125rem" }}
-            disabled={!!demo}>
-            Release Collateral →
-          </button>
-        </div>
-
-        {/* Privacy tags */}
-        <div style={{ display: "flex", gap: "0.375rem", marginTop: "1rem", flexWrap: "wrap" }}>
-          <span className="badge badge-cyan">🔒 FHE-Private Debt</span>
-          <span className="badge badge-violet">⚡ Ika MPC Custody</span>
-          <span className="badge badge-amber">₿ EcdsaDoubleSha256</span>
-        </div>
-      </div>
-
-      {showBorrow && <BorrowModal loan={loan} onClose={() => setShowBorrow(false)} />}
-    </>
-  );
-}
+import { fetchLoansByBorrower, type LoanAccount } from "@/lib/onchain";
+import { explorerAddress } from "@/lib/constants";
 
 export function LoanDashboard() {
   const { connected, publicKey } = useWallet();
-  const loans = connected ? [] : DEMO_LOANS;
-  const isDemo = !connected;
+  const { connection } = useConnection();
+  const [loans, setLoans] = useState<LoanAccount[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!connected || !publicKey) {
+        setLoans([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const fetched = await fetchLoansByBorrower(connection, publicKey);
+        if (!cancelled) setLoans(fetched);
+      } catch {
+        if (!cancelled) setLoans([]);
+      }
+      if (!cancelled) setLoading(false);
+    }
+    load();
+    const interval = setInterval(load, 15_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [connected, publicKey, connection]);
+
+  if (!connected) {
+    return (
+      <section className="z-base section-sm" style={{ background: "var(--surface-1)", borderTop: "1px solid var(--border-1)" }}>
+        <div className="container" style={{ textAlign: "center", padding: "4rem 0" }}>
+          <div style={{
+            width: 64, height: 64, borderRadius: "50%", background: "var(--surface-2)",
+            border: "1px solid var(--border-2)", display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "1.5rem", margin: "0 auto 1.5rem",
+          }}>🔒</div>
+          <h2 style={{ marginBottom: "1rem" }}>Your Credit Lines</h2>
+          <p style={{ color: "var(--text-2)", maxWidth: 400, margin: "0 auto 2rem" }}>
+            Connect your wallet to view your active FHE-encrypted credit lines and dWallet vaults.
+          </p>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <ClientWalletButton />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="z-base section">
+    <section className="z-base section-sm" style={{ background: "var(--surface-1)", borderTop: "1px solid var(--border-1)", borderBottom: "1px solid var(--border-1)" }}>
       <div className="container">
-        {/* Header row */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem", gap: "1rem", flexWrap: "wrap" }}>
-          <div>
-            <h2>Credit Positions</h2>
-            <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>
-              {connected
-                ? <span>Wallet <code style={{ color: "var(--cyan)" }}>{publicKey?.toBase58().slice(0, 6)}...{publicKey?.toBase58().slice(-4)}</code></span>
-                : "Connect wallet to view live positions"}
-            </p>
-          </div>
-          <Link href="/borrow" id="btn-new-credit-line"
-            className="btn btn-primary btn-sm"
-            style={{ textDecoration: "none", opacity: connected ? 1 : 0.5, pointerEvents: connected ? "auto" : "none" }}>
-            + New Credit Line
-          </Link>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
+          <h2 style={{ fontSize: "1.5rem" }}>Your Credit Lines</h2>
+          <span className="badge badge-cyan">{loans.length} Positions</span>
         </div>
 
-        {/* Content */}
-        {loans.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {loans.map(loan => <LoanCard key={loan.id} loan={loan} demo={isDemo} />)}
+        {loading && loans.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "4rem", border: "1px dashed var(--border-2)", borderRadius: "var(--r-lg)" }}>
+            <div className="dot dot-cyan" style={{ width: 8, height: 8, margin: "0 auto 1rem" }} />
+            <p style={{ color: "var(--text-2)" }}>Scanning devnet for your loan PDAs...</p>
           </div>
-        ) : connected ? (
-          <div className="card" style={{ padding: "clamp(3rem, 7vw, 5rem)", textAlign: "center" }}>
-            <div style={{ fontSize: "3rem", marginBottom: "1rem", filter: "grayscale(0.2)" }}>₿</div>
-            <h3 style={{ marginBottom: "0.5rem" }}>No Credit Lines Yet</h3>
-            <p style={{ marginBottom: "2rem", maxWidth: 360, margin: "0.5rem auto 2rem" }}>
-              Open your first confidential BTC credit line in under a minute.
-            </p>
-            <Link href="/borrow" id="btn-open-first-line" className="btn btn-primary btn-lg" style={{ textDecoration: "none" }}>
-              Open Credit Line →
-            </Link>
+        ) : loans.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "4rem", border: "1px dashed var(--border-2)", borderRadius: "var(--r-lg)" }}>
+            <p style={{ color: "var(--text-2)", marginBottom: "1.5rem" }}>No active credit lines found for this wallet.</p>
+            <a href="/borrow" className="btn btn-primary" style={{ textDecoration: "none" }}>Open Credit Line</a>
           </div>
         ) : (
-          <div className="card" style={{ padding: "clamp(2.5rem, 6vw, 4rem)", textAlign: "center" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🔒</div>
-            <h3 style={{ marginBottom: "0.5rem" }}>Connect Your Wallet</h3>
-            <p style={{ marginBottom: "1.75rem" }}>Manage your live credit positions on Solana devnet.</p>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <ClientWalletButton />
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <AnimatePresence>
+              {loans.map((loan, i) => (
+                <motion.div
+                  key={loan.pubkey}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="card"
+                  style={{ padding: "1.5rem" }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "1rem", marginBottom: "1.25rem" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                        <span style={{ fontWeight: 600, fontSize: "1.125rem" }}>Loan #{loan.loanIndex}</span>
+                        <span className={`badge ${loan.statusCode === 2 ? 'badge-green' : 'badge-amber'}`}>
+                          {loan.statusLabel}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                        PDA: <a href={explorerAddress(loan.pubkey)} target="_blank" rel="noreferrer" style={{ color: "var(--text-2)" }}>{loan.pubkey.slice(0, 16)}...</a>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-3)", marginBottom: "0.25rem" }}>Ika dWallet pubkey</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--violet)" }}>
+                        <a href={explorerAddress(loan.dwalletPubkey)} target="_blank" rel="noreferrer" style={{ color: "var(--violet)" }}>{loan.dwalletPubkey.slice(0, 12)}...</a>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid-2" style={{ gap: "1rem", background: "var(--surface-2)", padding: "1rem", borderRadius: "var(--r-sm)", border: "1px solid var(--border-1)" }}>
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                        <span>🔒 Collateral Value CT</span>
+                      </div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-1)" }}>
+                        {loan.collateralCtPubkey === "11111111111111111111111111111111" ? "Zero / Uninitialized" : (
+                          <a href={explorerAddress(loan.collateralCtPubkey)} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+                            {loan.collateralCtPubkey.slice(0, 16)}...
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                        <span>🔒 Debt CT</span>
+                      </div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-1)" }}>
+                        {loan.debtCtPubkey === "11111111111111111111111111111111" ? "Zero / Uninitialized" : (
+                          <a href={explorerAddress(loan.debtCtPubkey)} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>
+                            {loan.debtCtPubkey.slice(0, 16)}...
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>
