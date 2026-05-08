@@ -22,7 +22,7 @@ const HOW_IT_WORKS = [
   {
     step: "03",
     title: "Receive USDC Credit",
-    desc: "Credit flows instantly on Solana. Sub-second settlement, fractions-of-a-cent fees. Repay at any time — Ika releases your BTC collateral back to your wallet.",
+    desc: "Receive native Solana USDC directly. Once approved, disbursements are atomic with fractions-of-a-cent fees. Repay at any time to release your BTC collateral.",
     icon: "⚡",
     color: "var(--violet)",
     glow: "var(--violet-glow)",
@@ -34,7 +34,7 @@ const DIFFERENTIATORS = [
   { label: "No Bridges", icon: "🚫", desc: "BTC never leaves the Bitcoin network" },
   { label: "Private LTV",  icon: "🔏", desc: "FHE keeps debt amounts invisible" },
   { label: "MPC Custody",  icon: "🤝", desc: "Threshold signing — no single point of failure" },
-  { label: "Instant", icon: "⚡", desc: "Solana finality in < 400ms" },
+  { label: "Atomic Credit", icon: "⚡", desc: "Disbursements finalize in < 400ms on Solana" },
 ];
 
 export function PrivacyExplainer() {
