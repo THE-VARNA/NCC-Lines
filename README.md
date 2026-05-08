@@ -269,16 +269,6 @@ cargo test
 # All tests pass without deploying to devnet
 ```
 
----
-
-## Pre-Alpha Disclaimers
-
-- **Encrypt FHE**: Pre-alpha — data is stored as plaintext. No real encryption until mainnet.
-- **Ika dWallet**: Pre-alpha — uses a single mock signer, not real distributed MPC.
-- Both protocols are deployed on Solana devnet only.
-- All interfaces subject to change before mainnet.
-
----
 
 ## Built With
 
