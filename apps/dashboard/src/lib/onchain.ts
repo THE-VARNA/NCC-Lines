@@ -8,12 +8,22 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { NCC_PROGRAM_ID, findPoolPda, findLoanPda, getPoolId } from "./transactions";
 
+function safePublicKey(envVar: string | undefined, fallback: string): PublicKey {
+  try {
+    return new PublicKey((envVar || fallback).trim());
+  } catch (e) {
+    return new PublicKey(fallback);
+  }
+}
+
 // ── Program IDs (official devnet) ─────────────────────────────────────────
-export const ENCRYPT_PROGRAM_ID_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID || "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
+export const ENCRYPT_PROGRAM_ID_PUBKEY = safePublicKey(
+  process.env.NEXT_PUBLIC_ENCRYPT_PROGRAM_ID,
+  "4ebfzWdKnrnGseuQpezXdG8yCdHqwQ1SSBHD3bWArND8"
 );
-export const IKA_PROGRAM_ID_PUBKEY = new PublicKey(
-  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID || "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
+export const IKA_PROGRAM_ID_PUBKEY = safePublicKey(
+  process.env.NEXT_PUBLIC_IKA_PROGRAM_ID,
+  "87W54kGYFQ1rgWqMeu4XTPHWXWmXSQCcjm8vCTfiq1oY"
 );
 
 // ── State offsets (mirrors state.rs exactly) ──────────────────────────────
