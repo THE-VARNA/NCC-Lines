@@ -169,9 +169,16 @@ export function HeroSection() {
           ) : (
             <ClientWalletButton />
           )}
-          <Link href="/proofs" id="btn-hero-proofs" className="btn btn-secondary btn-xl" style={{ textDecoration: "none" }}>
-            View Proof Log
-          </Link>
+          <a
+            href="https://www.loom.com/share/847392be5ea24db0a289d9c0cdc9804c"
+            id="btn-hero-demo"
+            className="btn btn-secondary btn-xl"
+            style={{ textDecoration: "none" }}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ▶ Watch Demo
+          </a>
         </motion.div>
 
         {/* Pillar cards — glassmorphic */}
